@@ -13,19 +13,19 @@ namespace RAFTiNG.Tests
         [Given(@"I have deployed (.*) instances")]
         public void GivenIHaveDeployedInstances(int p0)
         {
-          
+            ScenarioContext.Current.Pending();
         }
         
         [When(@"I start instances (.*), (.*) and (.*)")]
         public void WhenIStartInstancesAnd(int p0, int p1, int p2)
         {
-           
+            ScenarioContext.Current.Pending();
         }
         
         [Then(@"there is (.*) leader")]
         public void ThenThereIsLeader(int p0)
         {
-            Check.That(0).IsEqualTo(p0);
+            ScenarioContext.Current.Pending();
         }
 
         [When(@"I wait (.*) seconde")]

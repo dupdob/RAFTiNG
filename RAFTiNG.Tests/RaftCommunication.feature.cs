@@ -66,13 +66,19 @@ namespace RAFTiNG.Tests
         
         [NUnit.Framework.TestAttribute()]
         [NUnit.Framework.DescriptionAttribute("Single node heartbeat")]
-        [NUnit.Framework.CategoryAttribute("mytag")]
+        [NUnit.Framework.CategoryAttribute("Communication")]
         public virtual void SingleNodeHeartbeat()
         {
             TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Single node heartbeat", new string[] {
-                        "mytag"});
+                        "Communication"});
 #line 5
 this.ScenarioSetup(scenarioInfo);
+#line 6
+testRunner.Given("I have deployed 1 instance", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
+#line 7
+testRunner.When("I send a message to 1", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
+#line 8
+testRunner.Then("1 has received my message", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
 #line hidden
             this.ScenarioCleanup();
         }

@@ -7,9 +7,10 @@ using System.Threading.Tasks;
 namespace RAFTiNG
 {
     /// <summary>
-    /// The Messaging interface.
+    /// The communication layer abstration.
     /// </summary>
     public interface IMessaging
     {
+
     }
 }
