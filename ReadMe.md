@@ -18,7 +18,7 @@ Using a RAFT implemented configuration/naming service, RARFTiNG provides the fol
  * Monte carlo load balancing
  * Custom load balancer
 
-RAFTiNG requires as litlle configuration as possible, is administrable through a REST API.
-Services relying on RAFTiNG for their clustering needs do not require extra configuration step as all details are provided by service nodes as they start up. API focus on a Pit of Success approach, with a happy path for the most frequent use cases.
+**RAFTiNG** requires as litlle configuration as possible, is administrable through a REST API.
+Services relying on **RAFTiNG** for their clustering needs do not require extra configuration step as all details are provided by service nodes as they start up. API focus on a Pit of Success approach, with a happy path for the most frequent use cases.
 
 
