@@ -11,7 +11,7 @@
 // ------------------------------------------------------------------------------
 #region Designer generated code
 #pragma warning disable
-namespace RAFTiNG.Tests
+namespace RAFTiNG.Tests.Acceptance
 {
     using TechTalk.SpecFlow;
     

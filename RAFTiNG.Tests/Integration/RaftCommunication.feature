@@ -4,5 +4,5 @@
 @Communication
 Scenario: Single node heartbeat
 Given I have deployed 1 instance
-When I send a message to 1
-Then 1 has received my message
+When I send a message to Node 1
+Then Node 1 has received my message

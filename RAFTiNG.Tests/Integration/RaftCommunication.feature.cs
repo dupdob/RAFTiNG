@@ -11,7 +11,7 @@
 // ------------------------------------------------------------------------------
 #region Designer generated code
 #pragma warning disable
-namespace RAFTiNG.Tests
+namespace RAFTiNG.Tests.Integration
 {
     using TechTalk.SpecFlow;
     
@@ -76,9 +76,9 @@ this.ScenarioSetup(scenarioInfo);
 #line 6
 testRunner.Given("I have deployed 1 instance", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
 #line 7
-testRunner.When("I send a message to 1", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
+testRunner.When("I send a message to Node 1", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
 #line 8
-testRunner.Then("1 has received my message", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
+testRunner.Then("Node 1 has received my message", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
 #line hidden
             this.ScenarioCleanup();
         }

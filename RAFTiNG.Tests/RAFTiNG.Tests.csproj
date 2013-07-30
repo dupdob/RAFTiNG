@@ -48,31 +48,38 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BasicRaft.feature.cs">
+    <Compile Include="Acceptance\BasicRaft.feature.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>BasicRaft.feature</DependentUpon>
     </Compile>
-    <Compile Include="BasicRaftSteps.cs" />
+    <Compile Include="Acceptance\BasicRaftSteps.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RaftCommunication.feature.cs">
+    <Compile Include="Integration\RaftCommunication.feature.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>RaftCommunication.feature</DependentUpon>
     </Compile>
-    <Compile Include="RaftCommunicationSteps.cs" />
+    <Compile Include="Integration\RaftCommunicationSteps.cs" />
+    <Compile Include="Unit\MiddlewareTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="BasicRaft.feature">
+    <None Include="Acceptance\BasicRaft.feature">
       <Generator>SpecFlowSingleFileGenerator</Generator>
       <LastGenOutput>BasicRaft.feature.cs</LastGenOutput>
     </None>
     <None Include="packages.config" />
-    <None Include="RaftCommunication.feature">
+    <None Include="Integration\RaftCommunication.feature">
       <Generator>SpecFlowSingleFileGenerator</Generator>
       <LastGenOutput>RaftCommunication.feature.cs</LastGenOutput>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\RAFTiNG\RAFTiNG.csproj">
+      <Project>{F0A62C0E-9C49-470D-AC27-3E28808B93C7}</Project>
+      <Name>RAFTiNG</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
