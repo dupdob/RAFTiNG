@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="BasicRaftSteps.cs" company="Cyrille DUPUYDAUBY">
+// <copyright file="NodeStatus.cs" company="">
 //   Copyright 2013 Cyrille DUPUYDAUBY
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,37 +16,31 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace RAFTiNG.Tests
+namespace RAFTiNG
 {
-    using System.Threading;
-
-    using TechTalk.SpecFlow;
-
-    [Binding]
-    public class BasicRaftSteps
+    /// <summary>
+    /// List the various states of a Node
+    /// </summary>
+    public enum NodeStatus
     {
-        [Given(@"I have deployed (.*) instances")]
-        public void GivenIHaveDeployedInstances(int p0)
-        {
-            ScenarioContext.Current.Pending();
-        }
-        
-        [When(@"I start instances (.*), (.*) and (.*)")]
-        public void WhenIStartInstancesAnd(int p0, int p1, int p2)
-        {
-            ScenarioContext.Current.Pending();
-        }
-        
-        [Then(@"there is (.*) leader")]
-        public void ThenThereIsLeader(int p0)
-        {
-            ScenarioContext.Current.Pending();
-        }
+        /// <summary>
+        /// Node is booting up
+        /// </summary>
+        Initializing,
 
-        [When(@"I wait (.*) seconde")]
-        public void WhenIWaitSeconde(int p0)
-        {
-            Thread.Sleep(p0 * 1000);
-        }
+        /// <summary>
+        /// The node is passive, acting as a replicator for the leader
+        /// </summary>
+        Follower,
+        
+        /// <summary>
+        /// The node is looking for a majority to be elected leader
+        /// </summary>
+        Candidate,
+
+        /// <summary>
+        /// This is the active node, in charge of making progress
+        /// </summary>
+        Leader
     }
 }

@@ -61,6 +61,7 @@
       <DependentUpon>RaftCommunication.feature</DependentUpon>
     </Compile>
     <Compile Include="Integration\RaftCommunicationSteps.cs" />
+    <Compile Include="Unit\BasicNodeTest.cs" />
     <Compile Include="Unit\MiddlewareTests.cs" />
   </ItemGroup>
   <ItemGroup>
