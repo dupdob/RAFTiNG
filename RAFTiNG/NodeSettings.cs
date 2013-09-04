@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="NodeStatus.cs" company="Cyrille DUPUYDAUBY">
+// <copyright file="NodeSettings.cs" company="Cyrille DUPUYDAUBY">
 //   Copyright 2013 Cyrille DUPUYDAUBY
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -19,28 +19,46 @@
 namespace RAFTiNG
 {
     /// <summary>
-    /// List the various states of a Node
+    /// Stores all settings for a given node.
     /// </summary>
-    public enum NodeStatus
+    public struct NodeSettings
     {
         /// <summary>
-        /// Node is booting up
+        /// Gets or sets the node id.
         /// </summary>
-        Initializing,
+        /// <value>
+        /// The node id.
+        /// </value>
+        public string NodeId { get; set; }
 
         /// <summary>
-        /// The node is passive, acting as a replicator for the leader
+        /// Gets or sets the timeout in milliseconds.
         /// </summary>
-        Follower,
-        
-        /// <summary>
-        /// The node is looking for a majority to be elected leader
-        /// </summary>
-        Candidate,
+        /// <value>
+        /// The timeout value in milliseconds.
+        /// </value>
+        public int TimeoutInMs { get; set; }
 
         /// <summary>
-        /// This is the active node, in charge of making progress
+        /// Gets or sets the other nodes.
         /// </summary>
-        Leader
+        /// <value>
+        /// The other nodes.
+        /// </value>
+        public string[] OtherNodes { get; set; }
+
+        /// <summary>
+        /// Gets the majority.
+        /// </summary>
+        /// <value>
+        /// The majority.
+        /// </value>
+        public int Majority
+        {
+            get
+            {
+                return (((this.OtherNodes == null) ? 0 : this.OtherNodes.Length) + 3) / 2;
+            }
+        }
     }
 }

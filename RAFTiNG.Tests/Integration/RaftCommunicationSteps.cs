@@ -20,6 +20,8 @@ namespace RAFTiNG.Tests
 {
     using NFluent;
 
+    using RAFTiNG.Tests.Unit;
+
     using TechTalk.SpecFlow;
 
     [Binding]
@@ -32,11 +34,12 @@ namespace RAFTiNG.Tests
         [Given(@"I have deployed (.*) instance")]
         public void GivenIHaveDeployedInstance(int p0)
         {
+            var nodeIds = new string[] { "1", "2", "3", "4", "5" };
             this.middleware = new Middleware();
             this.testedNodes = new Node<string>[p0];
             for (var i = 0; i < p0; i++)
             {
-                var testedNode = new Node<string>(i.ToString());
+                var testedNode = new Node<string>(Helpers.BuildNodeSettings(nodeIds[i], nodeIds));
                 testedNode.SetMiddleware(this.middleware);
                 this.testedNodes[i] = testedNode;
             }

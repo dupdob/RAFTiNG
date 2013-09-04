@@ -31,17 +31,17 @@ namespace RAFTiNG
         /// <summary>
         /// Sends a message to a specific address.
         /// </summary>
-        /// <param name="address">The address to send the message to.</param>
+        /// <param name="addressDest">The address to send the message to.</param>
         /// <param name="message">The message to be sent.</param>
         /// <returns>false if the message was not sent.</returns>
         /// <remarks>This is a best effort delivery contract. There is no guaranteed delivery.</remarks>
-        public bool SendMessage(string address, object message)
+        public bool SendMessage(string addressDest, object message)
         {
-            if (this.endpoints.ContainsKey(address))
+            if (this.endpoints.ContainsKey(addressDest))
             {
                 try
                 {
-                    this.endpoints[address].Invoke(message);
+                    this.endpoints[addressDest].Invoke(message);
                 }
                 catch (Exception)
                 {
@@ -65,7 +65,7 @@ namespace RAFTiNG
         {
             if (string.IsNullOrEmpty(address))
             {
-                throw new ArgumentNullException(address, "address must contain a value.");
+                throw new ArgumentNullException(address, "addressDest must contain a value.");
             }
 
             if (messageReceived == null)

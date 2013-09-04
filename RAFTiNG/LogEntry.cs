@@ -1,26 +1,28 @@
-﻿// // --------------------------------------------------------------------------------------------------------------------
-// // <copyright file="LogEntry.cs" company="">
-// //   Copyright 2013 Cyrille DUPUYDAUBY
-// //   Licensed under the Apache License, Version 2.0 (the "License");
-// //   you may not use this file except in compliance with the License.
-// //   You may obtain a copy of the License at
-// //       http://www.apache.org/licenses/LICENSE-2.0
-// //   Unless required by applicable law or agreed to in writing, software
-// //   distributed under the License is distributed on an "AS IS" BASIS,
-// //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// //   See the License for the specific language governing permissions and
-// //   limitations under the License.
-// // </copyright>
-// // --------------------------------------------------------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="LogEntry.cs" company="Cyrille DUPUYDAUBY">
+//   Copyright 2013 Cyrille DUPUYDAUBY
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//   http://www.apache.org/licenses/LICENSE-2.0
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+// </copyright>
+// <summary>
+//   
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
+
 namespace RAFTiNG
 {
-    using System.Runtime.Serialization;
-
     /// <summary>
     /// A log entry description
     /// </summary>
     /// <typeparam name="T">Command for the internal state machine.</typeparam>
-    public class LogEntry<T>
+    public sealed class LogEntry<T>
     {
         #region attributes
 
@@ -42,6 +44,15 @@ namespace RAFTiNG
             this.Command = command;
             this.Term = term;
             this.Index = index;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LogEntry{T}"/> class.
+        /// </summary>
+        /// <param name="command">The command.</param>
+        public LogEntry(T command)
+        {
+            this.Command = command;
         }
 
         #endregion
@@ -68,12 +79,12 @@ namespace RAFTiNG
         #region methods
 
         /// <summary>
-        /// Détermine si l'objet <see cref="T:System.Object"/> spécifié est égal à l'objet <see cref="T:System.Object"/> actuel.
+        /// Determines whether the specified <see cref="System.Object" /> is equal to this instance.
         /// </summary>
+        /// <param name="obj">The <see cref="System.Object" /> to compare with this instance.</param>
         /// <returns>
-        /// true si l'objet spécifié est égal à l'objet actuel ; sinon, false.
+        ///   <c>true</c> if the specified <see cref="System.Object" /> is equal to this instance; otherwise, <c>false</c>.
         /// </returns>
-        /// <param name="obj">Objet à comparer avec l'objet actif.</param>
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj))
@@ -95,10 +106,10 @@ namespace RAFTiNG
         }
 
         /// <summary>
-        /// Sert de fonction de hachage pour un type particulier.
+        /// Returns a hash code for this instance.
         /// </summary>
         /// <returns>
-        /// Code de hachage du <see cref="T:System.Object"/> actuel.
+        /// A hash code for this instance, suitable for use in hashing algorithms and data structures like a hash table. 
         /// </returns>
         public override int GetHashCode()
         {
@@ -118,7 +129,16 @@ namespace RAFTiNG
             return !LogEntry<T>.Equals(left, right);
         }
 
-        protected bool Equals(LogEntry<T> other)
+        /// <summary>
+        /// Determines whether the specified <see cref="System.Object"/> is equal to this instance.
+        /// </summary>
+        /// <param name="other">
+        /// The <see cref="System.Object"/> to compare with this instance.
+        /// </param>
+        /// <returns>
+        /// <c>true</c> if the specified <see cref="System.Object"/> is equal to this instance; otherwise, <c>false</c>.
+        /// </returns>
+        private bool Equals(LogEntry<T> other)
         {
             return this.Term == other.Term && this.Index == other.Index;
         }
