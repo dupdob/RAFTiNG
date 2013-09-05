@@ -21,7 +21,7 @@ namespace RAFTiNG.Messages
     /// <summary>
     /// Describes a vote request emitted by a candidate.
     /// </summary>
-    public struct RequestVote
+    public class RequestVote
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RequestVote"/> struct.
@@ -31,7 +31,6 @@ namespace RAFTiNG.Messages
         /// <param name="lastLogIndex">Last index of the log.</param>
         /// <param name="lastLogTerm">The last log term.</param>
         public RequestVote(long term, string candidateId, long lastLogIndex, long lastLogTerm)
-            : this()
         {
             this.Term = term;
             this.CandidateId = candidateId;

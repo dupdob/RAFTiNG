@@ -93,7 +93,7 @@ namespace RAFTiNG.Tests.Unit
         {
             var middleware = new Middleware();
             var settings = Helpers.BuildNodeSettings("1", new string[] { "1", "2", "3", "4", "5" });
-            settings.TimeoutInMs = 100;
+            settings.TimeoutInMs = Timeout.Infinite; // no timeout
             var node = new Node<string>(settings);
 
             node.SetMiddleware(middleware);
@@ -114,14 +114,34 @@ namespace RAFTiNG.Tests.Unit
                 Check.That(this.lastMessage).IsNotEqualTo(null).And.IsInstanceOf<GrantVote>();
 
                 answer = this.lastMessage as GrantVote;
+                Check.That(node.State.VotedFor).IsEqualTo("2");
             }
 
             // did we get the vote?
             Check.That(answer.VoteGranted).IsTrue();
-            Check.That(node.State.VotedFor).IsEqualTo("2");
 
             // now, add entries
             node.AddEntry("dummy");
+
+            node.State.CurrentTerm = 2;
+            node.AddEntry("dummy");
+            lock (this.synchro)
+            {
+                // request a vote, and lie about our capacity
+                middleware.SendMessage("1", new RequestVote(2, "2", 2, 2));
+
+                if (this.lastMessage == null)
+                {
+                    Monitor.Wait(this.synchro, 50);
+                }
+                Check.That(this.lastMessage).IsNotEqualTo(null).And.IsInstanceOf<GrantVote>();
+
+                answer = this.lastMessage as GrantVote;
+                Check.That(node.State.VotedFor).IsEqualTo("2");
+            }
+
+            // did we get the vote?
+            Check.That(answer.VoteGranted).IsTrue();
         }
 
         private void MessageReceived(object obj)

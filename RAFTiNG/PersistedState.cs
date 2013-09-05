@@ -98,5 +98,35 @@ namespace RAFTiNG
         {
             var newEntry = new LogEntry<T>(command, this.currentTerm, this.LogEntries.Count);
         }
+
+        /// <summary>
+        /// Checks if our log is bettern than the given criteria
+        /// </summary>
+        /// <param name="lastLogTerm">The last log term.</param>
+        /// <param name="lastLogIndex">Last index of the log.</param>
+        /// <returns>True if our log contains entries of a greater term or if we have more entries and the same term.</returns>
+        /// <remarks>See RAFT specification.</remarks>
+        public bool LogIsBetterThan(long lastLogTerm, long lastLogIndex)
+        {
+            if (this.LogEntries.Count == 0)
+            {
+                // no log, we are the worst
+                return false;
+            }
+
+            int lastEntryId = this.LogEntries.Count - 1;
+            LogEntry<T> lastEntry = this.LogEntries[lastEntryId];
+            if (lastEntry.Term > lastLogTerm)
+            {
+                // if we have more recent info
+                return true;
+            }
+            else if (lastEntry.Term < lastLogTerm)
+            {
+                return false;
+            }
+
+            return lastEntry.Index > lastLogIndex;
+        }
     }
 }

@@ -222,8 +222,14 @@ namespace RAFTiNG
                         this.SwitchTo(NodeStatus.Follower);
                     }
                 }
+                // we check how complete is the log ?
+                if (this.State.LogIsBetterThan(requestVote.LastLogTerm, requestVote.LastLogIndex))
+                {
+                    // our log is better than the candidate's
+                    response = new GrantVote(false, this.Address, this.State.CurrentTerm);
+                }
                 // can we grant the vote ?
-                if (string.IsNullOrEmpty(this.State.VotedFor)
+                else if (string.IsNullOrEmpty(this.State.VotedFor)
                     || this.State.VotedFor == requestVote.CandidateId)
                 {
                     this.State.VotedFor = requestVote.CandidateId;
