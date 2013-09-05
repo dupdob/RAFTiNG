@@ -97,6 +97,7 @@ namespace RAFTiNG
         public void AddEntry(T command)
         {
             var newEntry = new LogEntry<T>(command, this.currentTerm, this.LogEntries.Count);
+            this.LogEntries.Add(newEntry);
         }
 
         /// <summary>

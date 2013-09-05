@@ -89,17 +89,10 @@ namespace RAFTiNG.Tests.Unit
         }
 
         [Test]
-        public void GrantVoteTest()
+        public void NodeWithNoLogsGrantsVote()
         {
-            var middleware = new Middleware();
-            var settings = Helpers.BuildNodeSettings("1", new string[] { "1", "2", "3", "4", "5" });
-            settings.TimeoutInMs = Timeout.Infinite; // no timeout
-            var node = new Node<string>(settings);
-
-            node.SetMiddleware(middleware);
-            node.Initialize();
-
-            middleware.RegisterEndPoint("2", MessageReceived);
+            Node<string> node;
+            var middleware = this.InitNodes(out node);
 
             GrantVote answer;
             lock (this.synchro)
@@ -120,11 +113,71 @@ namespace RAFTiNG.Tests.Unit
             // did we get the vote?
             Check.That(answer.VoteGranted).IsTrue();
 
+        }
+
+        [Test]
+        public void NodeWithSameLogGrantsVote()
+        {
+            Node<string> node;
+            var middleware = this.InitNodes(out node);
+
             // now, add entries
             node.AddEntry("dummy");
 
             node.State.CurrentTerm = 2;
             node.AddEntry("dummy");
+            node.AddEntry("dummy");
+            this.RequestAndGetVote(middleware, node, true);
+        }
+
+        [Test]
+        public void NodeWithLongerLogOlderTermGrantsVote()
+        {
+            Node<string> node;
+            var middleware = this.InitNodes(out node);
+
+            // now, add entries
+            node.AddEntry("dummy");
+
+            node.State.CurrentTerm = 1;
+            node.AddEntry("dummy");
+            node.AddEntry("dummy");
+            node.AddEntry("dummy");
+            this.RequestAndGetVote(middleware, node, true);
+        }
+
+        [Test]
+        public void NodeWithLongerLogSameTermDoesNotGrantVote()
+        {
+            Node<string> node;
+            var middleware = this.InitNodes(out node);
+
+            // now, add entries
+            node.AddEntry("dummy");
+
+            node.State.CurrentTerm = 2;
+            node.AddEntry("dummy");
+            node.AddEntry("dummy");
+            node.AddEntry("dummy");
+            this.RequestAndGetVote(middleware, node, false);
+        }
+
+        [Test]
+        public void NodeWithMoreRescentTermDoesNotGrantVote()
+        {
+            Node<string> node;
+            var middleware = this.InitNodes(out node);
+
+            // now, add entries
+            node.AddEntry("dummy");
+
+            node.State.CurrentTerm = 3;
+
+            this.RequestAndGetVote(middleware, node, false);
+        }
+
+        private void RequestAndGetVote(Middleware middleware, Node<string> node, bool succeed)
+        {
             lock (this.synchro)
             {
                 // request a vote, and lie about our capacity
@@ -136,12 +189,33 @@ namespace RAFTiNG.Tests.Unit
                 }
                 Check.That(this.lastMessage).IsNotEqualTo(null).And.IsInstanceOf<GrantVote>();
 
-                answer = this.lastMessage as GrantVote;
-                Check.That(node.State.VotedFor).IsEqualTo("2");
+                var answer = this.lastMessage as GrantVote;
+                if (succeed)
+                {
+                    Check.That(node.State.VotedFor).IsEqualTo("2");
+                    // did we get the vote?
+                    Check.That(answer.VoteGranted).IsTrue();
+                }
+                else
+                {
+                    Check.That(answer.VoteGranted).IsFalse();
+                }
             }
 
-            // did we get the vote?
-            Check.That(answer.VoteGranted).IsTrue();
+        }
+
+        private Middleware InitNodes(out Node<string> node)
+        {
+            var middleware = new Middleware();
+            var settings = Helpers.BuildNodeSettings("1", new string[] { "1", "2", "3", "4", "5" });
+            settings.TimeoutInMs = Timeout.Infinite; // no timeout
+            node = new Node<string>(settings);
+
+            node.SetMiddleware(middleware);
+            node.Initialize();
+
+            middleware.RegisterEndPoint("2", this.MessageReceived);
+            return middleware;
         }
 
         private void MessageReceived(object obj)
