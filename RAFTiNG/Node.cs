@@ -35,7 +35,7 @@ namespace RAFTiNG
     {
         #region properties
 
-        private readonly ILog logger = LogManager.GetLogger("Node");
+        private readonly ILog logger;
 
         private Timer heartBeatTimer;
 
@@ -58,6 +58,7 @@ namespace RAFTiNG
 
             this.Status = NodeStatus.Initializing;
             this.State = new PersistedState<T>();
+            this.logger = LogManager.GetLogger(string.Format("Node({0})", this.Address));
         }
 
         ~Node()
@@ -154,13 +155,13 @@ namespace RAFTiNG
             switch (status)
             {
                 case NodeStatus.Follower:
-                    this.ResetTimeout();
+                    this.ResetTimeout(false);
                     this.Status = NodeStatus.Follower;
                     break;
                 case NodeStatus.Candidate:
                     this.Status = NodeStatus.Candidate;
                     this.voteReceived = new Dictionary<string, GrantVote>();
-                    this.StopTimeout();
+                    this.ResetTimeout(true);
                     this.RequestVote();
                     break;
             }
@@ -174,7 +175,7 @@ namespace RAFTiNG
 
             // vote for self
             this.State.VotedFor = this.Address;
-            var request = new RequestVote(nextTerm, this.Address, 0, 0);
+            var request = new RequestVote(nextTerm, this.Address, this.State.LogEntries.Count, this.State.CurrentTerm);
 
             // send request to others
             foreach (var otherNode in this.settings.OtherNodes)
@@ -183,12 +184,18 @@ namespace RAFTiNG
             }
         }
 
-        private void ResetTimeout()
+        private void ResetTimeout(bool randomized)
         {
             this.StopTimeout();
 
+            var timeoutInMs = this.settings.TimeoutInMs;
+            if (randomized)
+            {
+                timeoutInMs = (int)(timeoutInMs * (.8 + new Random().NextDouble() * .4));
+            }
+
             this.heartBeatTimer = new Timer(
-                this.HeartbeatTimeouted, null, this.settings.TimeoutInMs, Timeout.Infinite);
+                this.HeartbeatTimeouted, null, timeoutInMs, Timeout.Infinite);
         }
 
         private void StopTimeout()
@@ -203,12 +210,24 @@ namespace RAFTiNG
 
         private void HeartbeatTimeouted(object state)
         {
-            this.logger.Warn("Timeout elapsed without sign from current leader.");
+            if (this.Status == NodeStatus.Follower)
+            {
+                this.logger.Warn("Timeout elapsed without sign from current leader.");
 
-            this.logger.Info("Trigger an election.");
+                this.logger.Info("Trigger an election.");
 
-            // going to candidate
-            this.SwitchTo(NodeStatus.Candidate);
+                // going to candidate
+                this.SwitchTo(NodeStatus.Candidate);
+            }
+            if (this.Status == NodeStatus.Candidate)
+            {
+                this.logger.Warn("Timeout elapsed without effective election.");
+
+                this.logger.Info("Trigger a new  election.");
+
+                // going to candidate
+                this.SwitchTo(NodeStatus.Candidate);
+            }
         }
 
         private void MessageReceived(object obj)

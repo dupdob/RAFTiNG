@@ -18,29 +18,63 @@
 
 namespace RAFTiNG.Tests
 {
+    using System.Collections.Generic;
+    using System.Linq;
     using System.Threading;
 
+    using NFluent;
+
     using TechTalk.SpecFlow;
+
+    using log4net.Appender;
+    using log4net.Config;
 
     [Binding]
     public class BasicRaftSteps
     {
+        private Middleware middleware;
+
+        private List<Node<string>> nodes;
+
         [Given(@"I have deployed (.*) instances")]
         public void GivenIHaveDeployedInstances(int p0)
         {
-            ScenarioContext.Current.Pending();
+
+            BasicConfigurator.Configure();
+            var names = new List<string>(p0);
+            for (int i = 0; i < p0; i++)
+            {
+                names.Add(i.ToString());
+            }
+            middleware = new Middleware();
+            nodes = new List<Node<string>>(p0);
+            var settings = new NodeSettings();
+            settings.OtherNodes = names.ToArray();
+            settings.TimeoutInMs = 100;
+
+            for (var i = 0; i < p0; i++)
+            {
+                settings.NodeId = names[i];
+                var node = new Node<string>(settings);
+                node.SetMiddleware(middleware);
+                nodes.Add(node);
+            }
         }
         
         [When(@"I start instances (.*), (.*) and (.*)")]
         public void WhenIStartInstancesAnd(int p0, int p1, int p2)
         {
-            ScenarioContext.Current.Pending();
+            nodes[p0-1].Initialize();
+            nodes[p1-1].Initialize();
+            nodes[p2-1].Initialize();
         }
         
         [Then(@"there is (.*) leader")]
         public void ThenThereIsLeader(int p0)
         {
-            ScenarioContext.Current.Pending();
+            var leaders = this.nodes.Count(node => node.Status == NodeStatus.Leader);
+
+            Check.That(leaders).IsEqualTo(p0);
         }
 
         [When(@"I wait (.*) seconde")]
