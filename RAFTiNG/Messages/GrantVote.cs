@@ -20,7 +20,7 @@ namespace RAFTiNG.Messages
     public class GrantVote
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="GrantVote"/> struct.
+        /// Initializes a new instance of the <see cref="GrantVote"/> class.
         /// </summary>
         /// <param name="voteGranted">if set to <c>true</c> [vote granted].</param>
         /// <param name="voterId">The voter id.</param>
@@ -44,7 +44,7 @@ namespace RAFTiNG.Messages
         /// Gets the voter id.
         /// </summary>
         /// <value>
-        /// The voter id.
+        /// The voter id.   
         /// </value>
         /// <remarks>The voter ID is the sender id.</remarks>
         public string VoterId { get; private set; }
@@ -56,5 +56,16 @@ namespace RAFTiNG.Messages
         /// The voter term.
         /// </value>
         public long VoterTerm { get; private set; }
+
+        /// <summary>
+        /// Returns a <see cref="System.String" /> that represents this instance.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="System.String" /> that represents this instance.
+        /// </returns>
+        public override string ToString()
+        {
+            return string.Format("VoteGranted: {0}, VoterId: {1}, VoterTerm: {2}", this.VoteGranted, this.VoterId, this.VoterTerm);
+        }
     }
 }

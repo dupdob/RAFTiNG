@@ -24,7 +24,7 @@ namespace RAFTiNG.Messages
     public class RequestVote
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="RequestVote"/> struct.
+        /// Initializes a new instance of the <see cref="RequestVote"/> class.
         /// </summary>
         /// <param name="term">The term.</param>
         /// <param name="candidateId">The candidate id.</param>

@@ -119,16 +119,6 @@ namespace RAFTiNG
             }
         }
 
-        public static bool operator ==(LogEntry<T> left, LogEntry<T> right)
-        {
-            return LogEntry<T>.Equals(left, right);
-        }
-
-        public static bool operator !=(LogEntry<T> left, LogEntry<T> right)
-        {
-            return !LogEntry<T>.Equals(left, right);
-        }
-
         /// <summary>
         /// Determines whether the specified <see cref="System.Object"/> is equal to this instance.
         /// </summary>

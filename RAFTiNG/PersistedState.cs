@@ -101,7 +101,7 @@ namespace RAFTiNG
         }
 
         /// <summary>
-        /// Checks if our log is bettern than the given criteria
+        /// Checks if our log is better than the given criteria
         /// </summary>
         /// <param name="lastLogTerm">The last log term.</param>
         /// <param name="lastLogIndex">Last index of the log.</param>
@@ -115,14 +115,15 @@ namespace RAFTiNG
                 return false;
             }
 
-            int lastEntryId = this.LogEntries.Count - 1;
-            LogEntry<T> lastEntry = this.LogEntries[lastEntryId];
+            var lastEntryId = this.LogEntries.Count - 1;
+            var lastEntry = this.LogEntries[lastEntryId];
             if (lastEntry.Term > lastLogTerm)
             {
                 // if we have more recent info
                 return true;
             }
-            else if (lastEntry.Term < lastLogTerm)
+
+            if (lastEntry.Term < lastLogTerm)
             {
                 return false;
             }

@@ -20,7 +20,10 @@ namespace RAFTiNG
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading;
+
+    using log4net;
 
     using RAFTiNG.Messages;
 
@@ -28,19 +31,19 @@ namespace RAFTiNG
     /// Implements a Node as described by the RAFT algorithm
     /// </summary>
     /// <typeparam name="T">Command type for the internal state machine.</typeparam>
-    public class Node<T> : IDisposable
+    public sealed class Node<T> : IDisposable
     {
         #region properties
 
-        private readonly string[] otherNodes;
-
-        private readonly int timeoutInMs;
+        private readonly ILog logger = LogManager.GetLogger("Node");
 
         private Timer heartBeatTimer;
 
-        private Middleware middleware;
+        private IMiddleware middleware;
 
-        private IList<string> voteReceived;
+        private IDictionary<string, GrantVote> voteReceived;
+
+        private NodeSettings settings;
 
         #endregion
 
@@ -51,8 +54,8 @@ namespace RAFTiNG
         public Node(NodeSettings settings)
         {
             this.Address = settings.NodeId;
-            this.otherNodes = settings.OtherNodes ?? new string[] { };
-            this.timeoutInMs = settings.TimeoutInMs;
+            this.settings = settings;
+
             this.Status = NodeStatus.Initializing;
             this.State = new PersistedState<T>();
         }
@@ -92,12 +95,14 @@ namespace RAFTiNG
         /// Sets the middleware for the node
         /// </summary>
         /// <param name="test">The test.</param>
-        public void SetMiddleware(Middleware test)
+        public void SetMiddleware(IMiddleware test)
         {
             if (test == null)
             {
                 throw new ArgumentNullException("test");
             }
+
+            this.logger.InfoFormat("Middleware registration to address {0}", this.Address);
             test.RegisterEndPoint(this.Address, this.MessageReceived);
             this.middleware = test;
         }
@@ -107,10 +112,11 @@ namespace RAFTiNG
         /// </summary>
         public void Initialize()
         {
-            if (middleware == null)
+            if (this.middleware == null)
             {
                 throw new InvalidOperationException("Must call SetMiddleware first!");
             }
+
             // TODO: restore persisted state
             if (this.Status != NodeStatus.Initializing)
             {
@@ -124,14 +130,27 @@ namespace RAFTiNG
         /// Adds a entry.
         /// </summary>
         /// <param name="command">The command.</param>
-        /// <exception cref="System.NotImplementedException"></exception>
         public void AddEntry(T command)
         {
             this.State.AddEntry(command);
         }
 
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
         private void SwitchTo(NodeStatus status)
         {
+            if (this.logger.IsDebugEnabled)
+            {
+                this.logger.DebugFormat("Switching status from {0} to {1}", this.Status, status);
+            }
+
             switch (status)
             {
                 case NodeStatus.Follower:
@@ -140,7 +159,7 @@ namespace RAFTiNG
                     break;
                 case NodeStatus.Candidate:
                     this.Status = NodeStatus.Candidate;
-                    this.voteReceived = new List<string>();
+                    this.voteReceived = new Dictionary<string, GrantVote>();
                     this.StopTimeout();
                     this.RequestVote();
                     break;
@@ -158,7 +177,7 @@ namespace RAFTiNG
             var request = new RequestVote(nextTerm, this.Address, 0, 0);
 
             // send request to others
-            foreach (var otherNode in this.otherNodes)
+            foreach (var otherNode in this.settings.OtherNodes)
             {
                 this.middleware.SendMessage(otherNode, request);
             }
@@ -169,7 +188,7 @@ namespace RAFTiNG
             this.StopTimeout();
 
             this.heartBeatTimer = new Timer(
-                this.HeartbeatTimeouted, null, this.timeoutInMs, Timeout.Infinite);
+                this.HeartbeatTimeouted, null, this.settings.TimeoutInMs, Timeout.Infinite);
         }
 
         private void StopTimeout()
@@ -184,6 +203,10 @@ namespace RAFTiNG
 
         private void HeartbeatTimeouted(object state)
         {
+            this.logger.Warn("Timeout elapsed without sign from current leader.");
+
+            this.logger.Info("Trigger an election.");
+
             // going to candidate
             this.SwitchTo(NodeStatus.Candidate);
         }
@@ -192,15 +215,70 @@ namespace RAFTiNG
         {
             this.MessagesCount++;
 
-            if (obj is RequestVote)
+            var requestVote = obj as RequestVote;
+            if (requestVote != null)
             {
-                this.GrantVote((RequestVote)obj);
+                this.GrantVote(requestVote);
             }
+
+            var vote = obj as GrantVote;
+            if (vote != null)
+            {
+                this.ProcessVote(vote);
+            }
+        }
+
+        /// <summary>
+        /// Process a received vote.
+        /// </summary>
+        /// <param name="message">Received message.</param>
+        private void ProcessVote(GrantVote message)
+        {
+            if (this.Status != NodeStatus.Candidate && this.Status != NodeStatus.Leader)
+            {
+                this.logger.WarnFormat(
+                    "Received a vote but I am not a candidate or a leader now. Message discarded: {0}", message);
+                return;
+            }
+
+            if (message.VoterTerm > this.State.CurrentTerm)
+            {
+                this.State.CurrentTerm = message.VoterTerm;
+                this.SwitchTo(NodeStatus.Follower);
+                this.logger.DebugFormat("Received a vote from a node with a higher term. Stepping down. Message discarded {0}", message);
+                return;
+            }
+
+            if (this.voteReceived.ContainsKey(message.VoterId))
+            {
+                // we already recieved a vote from the voter!
+                this.logger.WarnFormat(
+                    "We received a second vote from {0}. Initial vote: {1}. Second vote: {2}",
+                    message.VoterId,
+                    this.voteReceived[message.VoterId], 
+                    message);
+                return;
+            }
+
+            this.voteReceived.Add(message.VoterId, message);
+
+            // count votes
+            var votes = this.voteReceived.Values.Count(grantVote => grantVote.VoteGranted);
+
+            if (votes < this.settings.Majority)
+            {
+                return;
+            }
+
+            // we have a majority
+            this.logger.DebugFormat("I have been elected as new leader.");
+            this.SwitchTo(NodeStatus.Leader);
         }
 
         /// <summary>
         /// Process a vote request
         /// </summary>
+        /// <param name="requestVote">Process a request for a vote.</param>
         private void GrantVote(RequestVote requestVote)
         {
             GrantVote response;
@@ -222,17 +300,18 @@ namespace RAFTiNG
                         this.SwitchTo(NodeStatus.Follower);
                     }
                 }
+
                 // we check how complete is the log ?
                 if (this.State.LogIsBetterThan(requestVote.LastLogTerm, requestVote.LastLogIndex))
                 {
                     // our log is better than the candidate's
                     response = new GrantVote(false, this.Address, this.State.CurrentTerm);
                 }
-                // can we grant the vote ?
                 else if (string.IsNullOrEmpty(this.State.VotedFor)
                     || this.State.VotedFor == requestVote.CandidateId)
                 {
                     this.State.VotedFor = requestVote.CandidateId;
+
                     // grant vote
                     response = new GrantVote(true, this.Address, this.State.CurrentTerm);
                 }
@@ -242,26 +321,18 @@ namespace RAFTiNG
                     response = new GrantVote(false, this.Address, this.State.CurrentTerm);
                 }
             }
+
             // send back the response
             this.middleware.SendMessage(requestVote.CandidateId, response);
         }
 
-        virtual protected void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
             if (this.heartBeatTimer != null)
             {
                 this.heartBeatTimer.Dispose();
                 this.heartBeatTimer = null;
             }
-        }
-
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
-        public void Dispose()
-        {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
         }
     }
 }

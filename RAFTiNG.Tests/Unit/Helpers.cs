@@ -2,7 +2,7 @@ namespace RAFTiNG.Tests.Unit
 {
     using System.Collections.Generic;
 
-    static internal class Helpers
+    internal static class Helpers
     {
         public static NodeSettings BuildNodeSettings(string nodeId, IEnumerable<string> nodes)
         {
