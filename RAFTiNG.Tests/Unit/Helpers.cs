@@ -24,7 +24,7 @@ namespace RAFTiNG.Tests.Unit
                                {
                                    NodeId = nodeId,
                                    TimeoutInMs = 10,
-                                   OtherNodes = workNodes.ToArray()
+                                   Nodes = workNodes.ToArray()
                                };
             return settings;
         }

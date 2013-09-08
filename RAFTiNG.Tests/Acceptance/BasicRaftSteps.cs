@@ -28,6 +28,7 @@ namespace RAFTiNG.Tests
 
     using log4net.Appender;
     using log4net.Config;
+    using log4net.Layout;
 
     [Binding]
     public class BasicRaftSteps
@@ -39,9 +40,12 @@ namespace RAFTiNG.Tests
         [Given(@"I have deployed (.*) instances")]
         public void GivenIHaveDeployedInstances(int p0)
         {
-
-            BasicConfigurator.Configure();
-            var names = new List<string>(p0);
+            var appender =
+                new ConsoleAppender(
+                    new PatternLayout("%date{HH:mm:ss,fff} [%thread] %-5level - %message (%logger)%newline"));
+            appender.ActivateOptions();
+            BasicConfigurator.Configure(appender);
+;           var names = new List<string>(p0);
             for (int i = 0; i < p0; i++)
             {
                 names.Add(i.ToString());
@@ -49,7 +53,7 @@ namespace RAFTiNG.Tests
             middleware = new Middleware();
             nodes = new List<Node<string>>(p0);
             var settings = new NodeSettings();
-            settings.OtherNodes = names.ToArray();
+            settings.Nodes = names.ToArray();
             settings.TimeoutInMs = 100;
 
             for (var i = 0; i < p0; i++)

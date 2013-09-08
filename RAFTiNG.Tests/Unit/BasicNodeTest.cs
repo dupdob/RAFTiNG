@@ -171,7 +171,7 @@ namespace RAFTiNG.Tests.Unit
             // now, add entries
             node.AddEntry("dummy");
 
-            node.State.CurrentTerm = 3;
+            node.State.CurrentTerm = 4;
 
             this.RequestAndGetVote(middleware, node, false);
         }
@@ -181,7 +181,7 @@ namespace RAFTiNG.Tests.Unit
             lock (this.synchro)
             {
                 // request a vote, and lie about our capacity
-                middleware.SendMessage("1", new RequestVote(2, "2", 2, 2));
+                middleware.SendMessage("1", new RequestVote(3, "2", 2, 2));
 
                 if (this.lastMessage == null)
                 {

@@ -164,21 +164,26 @@ namespace RAFTiNG
                     this.ResetTimeout(true);
                     this.RequestVote();
                     break;
+                case NodeStatus.Leader:
+                    this.Status = NodeStatus.Leader;
+                    this.StopTimeout();
+                    break;
             }
         }
 
         private void RequestVote()
         {
             // increase term
-            long nextTerm = this.State.CurrentTerm + 1;
+            var nextTerm = this.State.CurrentTerm + 1;
             this.State.CurrentTerm = nextTerm;
 
             // vote for self
             this.State.VotedFor = this.Address;
             var request = new RequestVote(nextTerm, this.Address, this.State.LogEntries.Count, this.State.CurrentTerm);
-
+            // vote for self
+          
             // send request to others
-            foreach (var otherNode in this.settings.OtherNodes)
+            foreach (var otherNode in this.settings.Nodes)
             {
                 this.middleware.SendMessage(otherNode, request);
             }
@@ -186,24 +191,32 @@ namespace RAFTiNG
 
         private void ResetTimeout(bool randomized)
         {
-            this.StopTimeout();
-
             var timeoutInMs = this.settings.TimeoutInMs;
             if (randomized)
             {
-                timeoutInMs = (int)(timeoutInMs * (.8 + new Random().NextDouble() * .4));
+                timeoutInMs = (int)(timeoutInMs * (.8 + (new Random().NextDouble() * .4)));
             }
 
-            this.heartBeatTimer = new Timer(
-                this.HeartbeatTimeouted, null, timeoutInMs, Timeout.Infinite);
+            logger.DebugFormat("Set timeout to {0} ms", timeoutInMs);
+            if (this.heartBeatTimer == null)
+            {
+                this.heartBeatTimer = new Timer(
+                    this.HeartbeatTimeouted, null, timeoutInMs, Timeout.Infinite);
+            }
+            else
+            {
+                this.heartBeatTimer.Change(timeoutInMs, Timeout.Infinite);
+            }
         }
 
         private void StopTimeout()
         {
             if (this.heartBeatTimer != null)
             {
+                logger.Debug("Kill timer.");
                 var temp = this.heartBeatTimer;
                 this.heartBeatTimer = null;
+                temp.Change(Timeout.Infinite, Timeout.Infinite);
                 temp.Dispose();
             }
         }
@@ -256,7 +269,7 @@ namespace RAFTiNG
             if (this.Status != NodeStatus.Candidate && this.Status != NodeStatus.Leader)
             {
                 this.logger.WarnFormat(
-                    "Received a vote but I am not a candidate or a leader now. Message discarded: {0}", message);
+                    "Received a vote but I am not a candidate or a leader now. Message discarded: {0}.", message);
                 return;
             }
 
@@ -264,7 +277,7 @@ namespace RAFTiNG
             {
                 this.State.CurrentTerm = message.VoterTerm;
                 this.SwitchTo(NodeStatus.Follower);
-                this.logger.DebugFormat("Received a vote from a node with a higher term. Stepping down. Message discarded {0}", message);
+                this.logger.DebugFormat("Received a vote from a node with a higher term. Stepping down. Message discarded {0}.", message);
                 return;
             }
 
@@ -272,7 +285,7 @@ namespace RAFTiNG
             {
                 // we already recieved a vote from the voter!
                 this.logger.WarnFormat(
-                    "We received a second vote from {0}. Initial vote: {1}. Second vote: {2}",
+                    "We received a second vote from {0}. Initial vote: {1}. Second vote: {2}.",
                     message.VoterId,
                     this.voteReceived[message.VoterId], 
                     message);
@@ -301,16 +314,19 @@ namespace RAFTiNG
         private void GrantVote(RequestVote requestVote)
         {
             GrantVote response;
-            if (requestVote.Term < this.State.CurrentTerm)
+            if (requestVote.Term <= this.State.CurrentTerm)
             {
                 // requesting a vote for a node that has less recent information
-                // we declinet
+                // we decline
+                this.logger.TraceFormat("Received a vote request from a node with a lower term. Stepping down. Message discarded {0}", requestVote);
                 response = new GrantVote(false, this.Address, this.State.CurrentTerm);
             }
             else
             {
                 if (requestVote.Term > this.State.CurrentTerm)
                 {
+                    this.logger.DebugFormat("Received a vote request from a node with a higher term ({0}'s term is {1}, our {2}). Stepping down.", requestVote.CandidateId, requestVote.Term, this.State.CurrentTerm);
+
                     // we need to upgrade our term
                     this.State.CurrentTerm = requestVote.Term;
                     if (this.Status == NodeStatus.Candidate || this.Status == NodeStatus.Leader)
@@ -325,6 +341,7 @@ namespace RAFTiNG
                 {
                     // our log is better than the candidate's
                     response = new GrantVote(false, this.Address, this.State.CurrentTerm);
+                    this.logger.TraceFormat("Received a vote request from a node with less information. We do not grant vote. Message: {0}.", requestVote);
                 }
                 else if (string.IsNullOrEmpty(this.State.VotedFor)
                     || this.State.VotedFor == requestVote.CandidateId)
@@ -333,11 +350,13 @@ namespace RAFTiNG
 
                     // grant vote
                     response = new GrantVote(true, this.Address, this.State.CurrentTerm);
+                    this.logger.TraceFormat("We do grant vote. Message: {0}.", requestVote);
                 }
                 else
                 {
                     // we already voted for someone
                     response = new GrantVote(false, this.Address, this.State.CurrentTerm);
+                    this.logger.TraceFormat("We already voted. We do not grant vote. Message: {0}.", requestVote);
                 }
             }
 

@@ -18,6 +18,9 @@
 
 namespace RAFTiNG
 {
+    using System.Collections.Generic;
+    using System.Linq;
+
     /// <summary>
     /// Stores all settings for a given node.
     /// </summary>
@@ -40,12 +43,22 @@ namespace RAFTiNG
         public int TimeoutInMs { get; set; }
 
         /// <summary>
-        /// Gets or sets the other nodes.
+        /// Gets or sets the list of nodes.
         /// </summary>
         /// <value>
         /// The other nodes.
         /// </value>
-        public string[] OtherNodes { get; set; }
+        public string[] Nodes { get; set; }
+
+        /// <summary>
+        /// Gets the list of other nodes.
+        /// </summary>
+        /// <returns>The list of nodes without this node.</returns>
+        public IList<string> OtherNodes()
+        {
+            var tmpThis = this;
+            return tmpThis.Nodes.Where(node => node != tmpThis.NodeId).ToList();
+        }
 
         /// <summary>
         /// Gets the majority.
@@ -57,7 +70,7 @@ namespace RAFTiNG
         {
             get
             {
-                return (((this.OtherNodes == null) ? 0 : this.OtherNodes.Length) + 3) / 2;
+                return (((this.Nodes == null) ? 0 : this.Nodes.Length) + 3) / 2;
             }
         }
     }
