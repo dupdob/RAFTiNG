@@ -314,7 +314,7 @@ namespace RAFTiNG
         private void GrantVote(RequestVote requestVote)
         {
             GrantVote response;
-            if (requestVote.Term <= this.State.CurrentTerm)
+            if (requestVote.Term <= this.State.CurrentTerm && requestVote.CandidateId != this.Address)
             {
                 // requesting a vote for a node that has less recent information
                 // we decline
