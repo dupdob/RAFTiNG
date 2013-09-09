@@ -51,16 +51,6 @@ namespace RAFTiNG
         public string[] Nodes { get; set; }
 
         /// <summary>
-        /// Gets the list of other nodes.
-        /// </summary>
-        /// <returns>The list of nodes without this node.</returns>
-        public IList<string> OtherNodes()
-        {
-            var tmpThis = this;
-            return tmpThis.Nodes.Where(node => node != tmpThis.NodeId).ToList();
-        }
-
-        /// <summary>
         /// Gets the majority.
         /// </summary>
         /// <value>
@@ -73,5 +63,16 @@ namespace RAFTiNG
                 return (((this.Nodes == null) ? 0 : this.Nodes.Length) + 3) / 2;
             }
         }
+
+        /// <summary>
+        /// Gets the list of other nodes.
+        /// </summary>
+        /// <returns>The list of nodes without this node.</returns>
+        public IList<string> OtherNodes()
+        {
+            var tmpThis = this;
+            return tmpThis.Nodes.Where(node => node != tmpThis.NodeId).ToList();
+        }
+
     }
 }

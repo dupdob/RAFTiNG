@@ -19,6 +19,9 @@ namespace RAFTiNG
     using log4net;
     using log4net.Core;
 
+    /// <summary>
+    /// Hosts extension methods for logs.
+    /// </summary>
     public static class LogExtensions
     {
         /// <summary>

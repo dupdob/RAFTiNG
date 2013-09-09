@@ -180,9 +180,8 @@ namespace RAFTiNG
             // vote for self
             this.State.VotedFor = this.Address;
             var request = new RequestVote(nextTerm, this.Address, this.State.LogEntries.Count, this.State.CurrentTerm);
-            // vote for self
-          
-            // send request to others
+
+            // send request to all nodes
             foreach (var otherNode in this.settings.Nodes)
             {
                 this.middleware.SendMessage(otherNode, request);
@@ -197,7 +196,7 @@ namespace RAFTiNG
                 timeoutInMs = (int)(timeoutInMs * (.8 + (new Random().NextDouble() * .4)));
             }
 
-            logger.DebugFormat("Set timeout to {0} ms", timeoutInMs);
+            this.logger.DebugFormat("Set timeout to {0} ms", timeoutInMs);
             if (this.heartBeatTimer == null)
             {
                 this.heartBeatTimer = new Timer(
@@ -213,7 +212,7 @@ namespace RAFTiNG
         {
             if (this.heartBeatTimer != null)
             {
-                logger.Debug("Kill timer.");
+                this.logger.Debug("Kill timer.");
                 var temp = this.heartBeatTimer;
                 this.heartBeatTimer = null;
                 temp.Change(Timeout.Infinite, Timeout.Infinite);
@@ -232,6 +231,7 @@ namespace RAFTiNG
                 // going to candidate
                 this.SwitchTo(NodeStatus.Candidate);
             }
+
             if (this.Status == NodeStatus.Candidate)
             {
                 this.logger.Warn("Timeout elapsed without effective election.");
@@ -366,7 +366,7 @@ namespace RAFTiNG
 
         private void Dispose(bool disposing)
         {
-            if (this.heartBeatTimer != null)
+            if (disposing && this.heartBeatTimer != null)
             {
                 this.heartBeatTimer.Dispose();
                 this.heartBeatTimer = null;
