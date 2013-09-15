@@ -69,5 +69,16 @@ namespace RAFTiNG.Messages
         /// The last log term.
         /// </value>
         public long LastLogTerm { get; private set; }
+
+        /// <summary>
+        /// Retourne une chaîne qui représente l'objet actuel.
+        /// </summary>
+        /// <returns>
+        /// Chaîne qui représente l'objet en cours.
+        /// </returns>
+        public override string ToString()
+        {
+            return string.Format("Term: {0}, CandidateId: {1}, LastLogIndex: {2}, LastLogTerm: {3}", this.Term, this.CandidateId, this.LastLogIndex, this.LastLogTerm);
+        }
     }
 }

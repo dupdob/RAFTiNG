@@ -19,33 +19,27 @@
 namespace RAFTiNG
 {
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Threading;
 
     using log4net;
 
     using RAFTiNG.Messages;
+    using RAFTiNG.States;
 
     /// <summary>
     /// Implements a Node as described by the RAFT algorithm
     /// </summary>
     /// <typeparam name="T">Command type for the internal state machine.</typeparam>
-    public sealed class Node<T> : IDisposable
+    public sealed class Node<T>
     {
         #region properties
 
         private readonly ILog logger;
 
-        private Timer heartBeatTimer;
-
         private IMiddleware middleware;
-
-        private IDictionary<string, GrantVote> voteReceived;
 
         private NodeSettings settings;
 
-        #endregion
+        private State<T> currentState; 
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Node{T}"/> class.
@@ -61,11 +55,8 @@ namespace RAFTiNG
             this.logger = LogManager.GetLogger(string.Format("Node({0})", this.Address));
         }
 
-        ~Node()
-        {
-            this.Dispose(false);
-        }
-
+        #endregion
+ 
         /// <summary>
         /// Gets the current status for this node.
         /// </summary>
@@ -91,6 +82,30 @@ namespace RAFTiNG
         /// Gets the persisted state.
         /// </summary>
         public PersistedState<T> State { get; private set; }
+
+        internal ILog Logger
+        {
+            get
+            {
+                return this.logger;
+            }
+        }
+
+        internal int TimeOutInMs
+        {
+            get
+            {
+                return this.settings.TimeoutInMs;
+            }
+        }
+
+        internal NodeSettings Settings
+        {
+            get
+            {
+                return this.settings;
+            }
+        }
 
         /// <summary>
         /// Sets the middleware for the node
@@ -136,240 +151,75 @@ namespace RAFTiNG
             this.State.AddEntry(command);
         }
 
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
-        public void Dispose()
+        internal void SwitchTo(NodeStatus status)
         {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+            State<T> newState;
 
-        private void SwitchTo(NodeStatus status)
-        {
             if (this.logger.IsDebugEnabled)
             {
                 this.logger.DebugFormat("Switching status from {0} to {1}", this.Status, status);
             }
 
+            if (this.currentState != null)
+            {
+                this.currentState.ExitState();
+            }
+
             switch (status)
             {
                 case NodeStatus.Follower:
-                    this.ResetTimeout(false);
-                    this.Status = NodeStatus.Follower;
+                    newState = new Follower<T>(this);
                     break;
                 case NodeStatus.Candidate:
-                    this.Status = NodeStatus.Candidate;
-                    this.voteReceived = new Dictionary<string, GrantVote>();
-                    this.ResetTimeout(true);
-                    this.RequestVote();
+                    newState = new Candidate<T>(this);
                     break;
                 case NodeStatus.Leader:
-                    this.Status = NodeStatus.Leader;
-                    this.StopTimeout();
+                    newState = new Leader<T>(this);
                     break;
+                default:
+                    throw new NotSupportedException("Status not supported");
             }
+
+            this.Status = status;
+            this.currentState = newState;
+            this.currentState.EnterState();
         }
 
-        private void RequestVote()
+        internal long IncrementTerm()
         {
-            // increase term
             var nextTerm = this.State.CurrentTerm + 1;
             this.State.CurrentTerm = nextTerm;
-
-            // vote for self
-            this.State.VotedFor = this.Address;
-            var request = new RequestVote(nextTerm, this.Address, this.State.LogEntries.Count, this.State.CurrentTerm);
-
-            // send request to all nodes
-            foreach (var otherNode in this.settings.Nodes)
-            {
-                this.middleware.SendMessage(otherNode, request);
-            }
+            return nextTerm;
         }
 
-        private void ResetTimeout(bool randomized)
-        {
-            var timeoutInMs = this.settings.TimeoutInMs;
-            if (randomized)
-            {
-                timeoutInMs = (int)(timeoutInMs * (.8 + (new Random().NextDouble() * .4)));
-            }
-
-            this.logger.DebugFormat("Set timeout to {0} ms", timeoutInMs);
-            if (this.heartBeatTimer == null)
-            {
-                this.heartBeatTimer = new Timer(
-                    this.HeartbeatTimeouted, null, timeoutInMs, Timeout.Infinite);
-            }
-            else
-            {
-                this.heartBeatTimer.Change(timeoutInMs, Timeout.Infinite);
-            }
-        }
-
-        private void StopTimeout()
-        {
-            if (this.heartBeatTimer != null)
-            {
-                this.logger.Debug("Kill timer.");
-                var temp = this.heartBeatTimer;
-                this.heartBeatTimer = null;
-                temp.Change(Timeout.Infinite, Timeout.Infinite);
-                temp.Dispose();
-            }
-        }
-
-        private void HeartbeatTimeouted(object state)
-        {
-            if (this.Status == NodeStatus.Follower)
-            {
-                this.logger.Warn("Timeout elapsed without sign from current leader.");
-
-                this.logger.Info("Trigger an election.");
-
-                // going to candidate
-                this.SwitchTo(NodeStatus.Candidate);
-            }
-
-            if (this.Status == NodeStatus.Candidate)
-            {
-                this.logger.Warn("Timeout elapsed without effective election.");
-
-                this.logger.Info("Trigger a new  election.");
-
-                // going to candidate
-                this.SwitchTo(NodeStatus.Candidate);
-            }
-        }
-
-        private void MessageReceived(object obj)
+        internal void MessageReceived(object obj)
         {
             this.MessagesCount++;
 
             var requestVote = obj as RequestVote;
             if (requestVote != null)
             {
-                this.GrantVote(requestVote);
+                this.currentState.ProcessVoteRequest(requestVote);
             }
 
             var vote = obj as GrantVote;
             if (vote != null)
             {
-                this.ProcessVote(vote);
+                this.currentState.ProcessVote(vote);
             }
         }
 
-        /// <summary>
-        /// Process a received vote.
-        /// </summary>
-        /// <param name="message">Received message.</param>
-        private void ProcessVote(GrantVote message)
+        internal void SendMessage(string dest, object message)
         {
-            if (this.Status != NodeStatus.Candidate && this.Status != NodeStatus.Leader)
-            {
-                this.logger.WarnFormat(
-                    "Received a vote but I am not a candidate or a leader now. Message discarded: {0}.", message);
-                return;
-            }
-
-            if (message.VoterTerm > this.State.CurrentTerm)
-            {
-                this.State.CurrentTerm = message.VoterTerm;
-                this.SwitchTo(NodeStatus.Follower);
-                this.logger.DebugFormat("Received a vote from a node with a higher term. Stepping down. Message discarded {0}.", message);
-                return;
-            }
-
-            if (this.voteReceived.ContainsKey(message.VoterId))
-            {
-                // we already recieved a vote from the voter!
-                this.logger.WarnFormat(
-                    "We received a second vote from {0}. Initial vote: {1}. Second vote: {2}.",
-                    message.VoterId,
-                    this.voteReceived[message.VoterId], 
-                    message);
-                return;
-            }
-
-            this.voteReceived.Add(message.VoterId, message);
-
-            // count votes
-            var votes = this.voteReceived.Values.Count(grantVote => grantVote.VoteGranted);
-
-            if (votes < this.settings.Majority)
-            {
-                return;
-            }
-
-            // we have a majority
-            this.logger.DebugFormat("I have been elected as new leader.");
-            this.SwitchTo(NodeStatus.Leader);
+            this.middleware.SendMessage(dest, message);
         }
 
-        /// <summary>
-        /// Process a vote request
-        /// </summary>
-        /// <param name="requestVote">Process a request for a vote.</param>
-        private void GrantVote(RequestVote requestVote)
+        internal void SendToAll(object message)
         {
-            GrantVote response;
-            if (requestVote.Term <= this.State.CurrentTerm && requestVote.CandidateId != this.Address)
+            // send request to all nodes
+            foreach (var otherNode in this.settings.Nodes)
             {
-                // requesting a vote for a node that has less recent information
-                // we decline
-                this.logger.TraceFormat("Received a vote request from a node with a lower term. Stepping down. Message discarded {0}", requestVote);
-                response = new GrantVote(false, this.Address, this.State.CurrentTerm);
-            }
-            else
-            {
-                if (requestVote.Term > this.State.CurrentTerm)
-                {
-                    this.logger.DebugFormat("Received a vote request from a node with a higher term ({0}'s term is {1}, our {2}). Stepping down.", requestVote.CandidateId, requestVote.Term, this.State.CurrentTerm);
-
-                    // we need to upgrade our term
-                    this.State.CurrentTerm = requestVote.Term;
-                    if (this.Status == NodeStatus.Candidate || this.Status == NodeStatus.Leader)
-                    {
-                        // we step down
-                        this.SwitchTo(NodeStatus.Follower);
-                    }
-                }
-
-                // we check how complete is the log ?
-                if (this.State.LogIsBetterThan(requestVote.LastLogTerm, requestVote.LastLogIndex))
-                {
-                    // our log is better than the candidate's
-                    response = new GrantVote(false, this.Address, this.State.CurrentTerm);
-                    this.logger.TraceFormat("Received a vote request from a node with less information. We do not grant vote. Message: {0}.", requestVote);
-                }
-                else if (string.IsNullOrEmpty(this.State.VotedFor)
-                    || this.State.VotedFor == requestVote.CandidateId)
-                {
-                    this.State.VotedFor = requestVote.CandidateId;
-
-                    // grant vote
-                    response = new GrantVote(true, this.Address, this.State.CurrentTerm);
-                    this.logger.TraceFormat("We do grant vote. Message: {0}.", requestVote);
-                }
-                else
-                {
-                    // we already voted for someone
-                    response = new GrantVote(false, this.Address, this.State.CurrentTerm);
-                    this.logger.TraceFormat("We already voted. We do not grant vote. Message: {0}.", requestVote);
-                }
-            }
-
-            // send back the response
-            this.middleware.SendMessage(requestVote.CandidateId, response);
-        }
-
-        private void Dispose(bool disposing)
-        {
-            if (disposing && this.heartBeatTimer != null)
-            {
-                this.heartBeatTimer.Dispose();
-                this.heartBeatTimer = null;
+                this.middleware.SendMessage(otherNode, message);
             }
         }
     }

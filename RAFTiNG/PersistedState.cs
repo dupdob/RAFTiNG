@@ -63,6 +63,34 @@ namespace RAFTiNG
         }
 
         /// <summary>
+        /// Gets the last persisted term.
+        /// </summary>
+        /// <value>
+        /// The last persisted term.
+        /// </value>
+        public long LastPersistedTerm
+        {
+            get
+            {
+                return this.LogEntries.Count > 0 ? this.LogEntries[this.LogEntries.Count - 1].Term : 0;
+            }
+        }
+
+        /// <summary>
+        /// Gets the last index of the persisted.
+        /// </summary>
+        /// <value>
+        /// The last index of the persisted.
+        /// </value>
+        public long LastPersistedIndex
+        {
+            get
+            {
+                return this.LogEntries.Count > 0 ? this.LogEntries[this.LogEntries.Count - 1].Index : 0;
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the name of the node we voted for (null is none).
         /// </summary>
         public string VotedFor { get; set; }

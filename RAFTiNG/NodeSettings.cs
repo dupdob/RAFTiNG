@@ -73,6 +73,5 @@ namespace RAFTiNG
             var tmpThis = this;
             return tmpThis.Nodes.Where(node => node != tmpThis.NodeId).ToList();
         }
-
     }
 }

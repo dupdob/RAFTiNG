@@ -19,18 +19,22 @@
 namespace RAFTiNG.Tests
 {
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
+    using System.Globalization;
     using System.Linq;
     using System.Threading;
+
+    using log4net.Appender;
+    using log4net.Config;
+    using log4net.Core;
+    using log4net.Layout;
 
     using NFluent;
 
     using TechTalk.SpecFlow;
 
-    using log4net.Appender;
-    using log4net.Config;
-    using log4net.Layout;
-
-    [Binding]
+    [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1600:ElementsMustBeDocumented",
+        Justification = "Reviewed. Suppression is OK here.")][Binding]
     public class BasicRaftSteps
     {
         private Middleware middleware;
@@ -41,7 +45,13 @@ namespace RAFTiNG.Tests
         {
             var appender = new ConsoleAppender();
             appender.Layout = new PatternLayout("%date{HH:mm:ss,fff} [%thread] %-5level - %message (%logger)%newline");
+            appender.Threshold = Level.Trace;
             appender.ActivateOptions();
+
+            // Configure the root logger.
+            var h = (log4net.Repository.Hierarchy.Hierarchy)log4net.LogManager.GetRepository();
+            log4net.Repository.Hierarchy.Logger rootLogger = h.Root;
+            rootLogger.Level = h.LevelMap["TRACE"];
             BasicConfigurator.Configure(appender);
         }
 
@@ -51,10 +61,11 @@ namespace RAFTiNG.Tests
             var names = new List<string>(p0);
             for (var i = 0; i < p0; i++)
             {
-                names.Add(i.ToString());
+                names.Add(i.ToString(CultureInfo.InvariantCulture));
             }
-            middleware = new Middleware();
-            nodes = new List<Node<string>>(p0);
+
+            this.middleware = new Middleware();
+            this.nodes = new List<Node<string>>(p0);
             var settings = new NodeSettings();
             settings.Nodes = names.ToArray();
             settings.TimeoutInMs = 100;
@@ -63,19 +74,19 @@ namespace RAFTiNG.Tests
             {
                 settings.NodeId = names[i];
                 var node = new Node<string>(settings);
-                node.SetMiddleware(middleware);
-                nodes.Add(node);
+                node.SetMiddleware(this.middleware);
+                this.nodes.Add(node);
             }
         }
         
         [When(@"I start instances (.*), (.*) and (.*)")]
         public void WhenIStartInstancesAnd(int p0, int p1, int p2)
         {
-            nodes[p0-1].Initialize();
-            nodes[p1-1].Initialize();
-            nodes[p2-1].Initialize();
+            this.nodes[p0 - 1].Initialize();
+            this.nodes[p1 - 1].Initialize();
+            this.nodes[p2 - 1].Initialize();
         }
-        
+
         [Then(@"there is (.*) leader")]
         public void ThenThereIsLeader(int p0)
         {
