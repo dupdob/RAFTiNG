@@ -54,6 +54,14 @@ namespace RAFTiNG.States
             }
         }
 
+        protected long CurrentTerm
+        {
+            get
+            {
+                return this.Node.State.CurrentTerm;
+            }
+        }
+
         private Timer HeartBeatTimer { get; set; }
 
         internal abstract void EnterState();

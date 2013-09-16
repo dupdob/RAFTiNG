@@ -71,10 +71,10 @@ namespace RAFTiNG.Messages
         public long LastLogTerm { get; private set; }
 
         /// <summary>
-        /// Retourne une chaîne qui représente l'objet actuel.
+        /// Returns a <see cref="System.String" /> that represents this instance.
         /// </summary>
         /// <returns>
-        /// Chaîne qui représente l'objet en cours.
+        /// A <see cref="System.String" /> that represents this instance.
         /// </returns>
         public override string ToString()
         {

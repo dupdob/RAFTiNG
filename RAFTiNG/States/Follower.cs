@@ -40,7 +40,7 @@ namespace RAFTiNG.States
         internal override void ProcessVoteRequest(RequestVote request)
         {
             bool vote;
-            var currentTerm = this.Node.State.CurrentTerm;
+            var currentTerm = this.CurrentTerm;
             if (request.Term <= currentTerm)
             {
                 // requesting a vote for a node that has less recent information

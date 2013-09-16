@@ -30,18 +30,18 @@ namespace RAFTiNG.States
         internal override void ProcessVoteRequest(RequestVote request)
         {
             GrantVote response;
-            if (request.Term <= this.Node.State.CurrentTerm)
+            if (request.Term <= this.CurrentTerm)
             {
                 // requesting a vote for a node that has less recent information
                 // we decline
                 this.Logger.TraceFormat(
                     "Received a vote request from a node with a lower term. Message discarded {0}",
                     request);
-                response = new GrantVote(false, this.Node.Address, this.Node.State.CurrentTerm);
+                response = new GrantVote(false, this.Node.Address, this.CurrentTerm);
             }
             else
             {
-                if (request.Term > this.Node.State.CurrentTerm)
+                if (request.Term > this.CurrentTerm)
                 {
                     this.Logger.DebugFormat(
                         "Received a vote request from a node with a higher term ({0}'s term is {1}, our {2}). Stepping down.",
@@ -57,7 +57,7 @@ namespace RAFTiNG.States
                     return;
                 }
 
-                response = new GrantVote(false, this.Node.Address, this.Node.State.CurrentTerm);
+                response = new GrantVote(false, this.Node.Address, this.CurrentTerm);
             }
 
             // send back the response

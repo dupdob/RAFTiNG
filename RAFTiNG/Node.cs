@@ -29,7 +29,7 @@ namespace RAFTiNG
     /// Implements a Node as described by the RAFT algorithm
     /// </summary>
     /// <typeparam name="T">Command type for the internal state machine.</typeparam>
-    public sealed class Node<T>
+    public sealed class Node<T> : IDisposable
     {
         #region properties
 
@@ -220,6 +220,18 @@ namespace RAFTiNG
             foreach (var otherNode in this.settings.Nodes)
             {
                 this.middleware.SendMessage(otherNode, message);
+            }
+        }
+
+
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public void Dispose()
+        {
+            if (this.currentState != null)
+            {
+                this.currentState.ExitState();
             }
         }
     }

@@ -53,7 +53,7 @@ namespace RAFTiNG.States
         internal override void ProcessVoteRequest(RequestVote request)
         {
             bool vote;
-            var currentTerm = this.Node.State.CurrentTerm;
+            var currentTerm = this.CurrentTerm;
             if (request.Term <= currentTerm && request.CandidateId != this.Node.Address)
             {
                 // requesting a vote for a node that has less recent information
@@ -113,7 +113,7 @@ namespace RAFTiNG.States
 
         internal override void ProcessVote(GrantVote vote)
         {
-            if (vote.VoterTerm > this.Node.State.CurrentTerm)
+            if (vote.VoterTerm > this.CurrentTerm)
             {
                 this.Node.State.CurrentTerm = vote.VoterTerm;
                 this.Logger.DebugFormat("Received a vote from a node with a higher term. Dropping candidate status down. Message discarded {0}.", vote);
