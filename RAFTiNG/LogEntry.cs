@@ -39,7 +39,7 @@ namespace RAFTiNG
         /// </param>
         /// <param name="index">Index for the current command.
         /// </param>
-        public LogEntry(T command, long term, long index)
+        public LogEntry(T command, long term, int index)
         {
             this.Command = command;
             this.Term = term;
@@ -72,7 +72,7 @@ namespace RAFTiNG
         /// <summary>
         /// Gets the index for this command.
         /// </summary>
-        public long Index { get; private set; }
+        public int Index { get; private set; }
 
         #endregion
 

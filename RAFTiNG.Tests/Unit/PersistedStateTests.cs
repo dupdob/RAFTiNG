@@ -47,9 +47,39 @@ namespace RAFTiNG.Tests.Unit
             test.AddEntry(new LogEntry<string>("dummy"));
             test.AddEntry(new LogEntry<string>("dummy"));
 
-            Check.That(test.LogEntries[0].Index).IsEqualTo(0L);
+            Check.That(test.LogEntries[0].Index).IsEqualTo(0);
             Check.That(test.LogEntries[1].Term).IsEqualTo(0L);
-            Check.That(test.LogEntries[1].Index).IsEqualTo(1L);
+            Check.That(test.LogEntries[1].Index).IsEqualTo(1);
+        }
+
+        [Test]
+        public void LastPersistedInfoWorks()
+        {
+            var test = new PersistedState<string> { CurrentTerm = 1 };
+            test.AddEntry(new LogEntry<string>("dummy"));
+            Check.That(test.LastPersistedTerm).IsEqualTo(1L);
+            Check.That(test.LastPersistedIndex).IsEqualTo(0);
+        }
+
+        [Test]
+        public void LogIsBetterWorks()
+        {
+            var test = new PersistedState<string> { CurrentTerm = 1 };
+            Check.That(test.LogIsBetterThan(0, 0)).IsFalse();
+            test.AddEntry(new LogEntry<string>("dummy"));
+            Check.That(test.LogIsBetterThan(0, 0)).IsTrue();
+            Check.That(test.LogIsBetterThan(1, 0)).IsFalse();
+        }
+
+        [Test]
+        public void LogEntryMatches()
+        {
+            var test = new PersistedState<string> { CurrentTerm = 1 };
+
+            test.AddEntry(new LogEntry<string>("dummy"));
+            test.CurrentTerm = 2;
+            test.AddEntry(new LogEntry<string>("dummy"));
+            Check.That(test.EntryMatches(0, 1L)).IsTrue();
         }
     }
 }

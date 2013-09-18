@@ -39,7 +39,7 @@ namespace RAFTiNG.States
         internal override void EnterState()
         {
             this.voteReceived = new Dictionary<string, GrantVote>();
-            this.ResetTimeout(.2);
+            this.ResetTimeout(.3);
 
             // increase term
             var nextTerm = this.Node.IncrementTerm();
@@ -72,10 +72,7 @@ namespace RAFTiNG.States
                         currentTerm);
 
                     // we step down
-                    this.Node.SwitchTo(NodeStatus.Follower);
-
-                    // resend the message to process it
-                    this.Node.MessageReceived(request);
+                    this.Node.SwitchToAndProcessMessage(NodeStatus.Follower, request);
                     return;
                 }
 
@@ -104,7 +101,7 @@ namespace RAFTiNG.States
             if (vote)
             {
                 this.Node.State.VotedFor = request.CandidateId;
-                this.ResetTimeout(.2);
+                this.ResetTimeout(.3);
             }
 
             // send back the response
@@ -145,6 +142,21 @@ namespace RAFTiNG.States
             // we have a majority
             this.Logger.DebugFormat("I have been elected as new leader.");
             this.Node.SwitchTo(NodeStatus.Leader);
+        }
+
+        internal override void ProcessAppendEntries(AppendEntries<T> appendEntries)
+        {
+            if (appendEntries.LeaderTerm >= this.CurrentTerm)
+            {
+                Logger.InfoFormat("Received AppendEntries from a probable leader, stepping down.");
+                this.Node.SwitchToAndProcessMessage(NodeStatus.Follower, appendEntries);
+            }
+            else
+            {
+                Logger.DebugFormat("Received AppendEntries from an invalid leader, refusing.");
+                var reply = new AppendEntriesAck(this.Node.Address, this.CurrentTerm, false);
+                this.Node.SendMessage(appendEntries.LeaderId, reply);
+            }
         }
 
         protected override void HeartbeatTimeouted(object state)

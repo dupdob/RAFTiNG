@@ -18,6 +18,8 @@
 
 namespace RAFTiNG.Tests
 {
+    using System;
+
     using NFluent;
 
     using RAFTiNG.Tests.Unit;
@@ -25,7 +27,7 @@ namespace RAFTiNG.Tests
     using TechTalk.SpecFlow;
 
     [Binding]
-    public class RaftCommunicationSteps
+    public class RaftCommunicationSteps: IDisposable
     {
         private Node<string>[] testedNodes;
 
@@ -55,6 +57,17 @@ namespace RAFTiNG.Tests
         public void ThenHasReceivedMyMessage(int p0)
         {
             Check.That(this.testedNodes[p0 - 1].MessagesCount).IsEqualTo(1);
+        }
+
+        /// <summary>
+        /// Exécute les tâches définies par l'application associées à la libération ou à la redéfinition des ressources non managées.
+        /// </summary>
+        public void Dispose()
+        {
+            foreach (var testedNode in testedNodes)
+            {
+                testedNode.Dispose();
+            }
         }
     }
 }

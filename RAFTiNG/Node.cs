@@ -31,7 +31,7 @@ namespace RAFTiNG
     /// <typeparam name="T">Command type for the internal state machine.</typeparam>
     public sealed class Node<T> : IDisposable
     {
-        #region properties
+        #region fields
 
         private readonly ILog logger;
 
@@ -39,7 +39,11 @@ namespace RAFTiNG
 
         private NodeSettings settings;
 
-        private State<T> currentState; 
+        private State<T> currentState;
+
+        #endregion
+
+        #region constructor
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Node{T}"/> class.
@@ -52,11 +56,13 @@ namespace RAFTiNG
 
             this.Status = NodeStatus.Initializing;
             this.State = new PersistedState<T>();
-            this.logger = LogManager.GetLogger(string.Format("Node({0})", this.Address));
+            this.logger = LogManager.GetLogger(string.Format("Node[{0}]", this.Address));
         }
 
         #endregion
- 
+
+        #region properties
+
         /// <summary>
         /// Gets the current status for this node.
         /// </summary>
@@ -107,6 +113,10 @@ namespace RAFTiNG
             }
         }
 
+        #endregion
+
+        #region methods
+
         /// <summary>
         /// Sets the middleware for the node
         /// </summary>
@@ -151,6 +161,18 @@ namespace RAFTiNG
             this.State.AddEntry(command);
         }
 
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public void Dispose()
+        {
+            logger.Info("Stopping Node.");
+            if (this.currentState != null)
+            {
+                this.currentState.ExitState();
+            }
+        }
+
         internal void SwitchTo(NodeStatus status)
         {
             State<T> newState;
@@ -185,6 +207,12 @@ namespace RAFTiNG
             this.currentState.EnterState();
         }
 
+        internal void SwitchToAndProcessMessage(NodeStatus status, object message)
+        {
+            this.SwitchTo(status);
+            this.MessageReceived(message);
+        }
+
         internal long IncrementTerm()
         {
             var nextTerm = this.State.CurrentTerm + 1;
@@ -192,7 +220,34 @@ namespace RAFTiNG
             return nextTerm;
         }
 
-        internal void MessageReceived(object obj)
+        internal void SendMessage(string dest, object message)
+        {
+            this.middleware.SendMessage(dest, message);
+        }
+
+        internal void SendToAll(object message)
+        {
+            this.logger.TraceFormat("Broadcast message to all: {0}", message);
+
+            // send request to all nodes
+            foreach (var otherNode in this.settings.Nodes)
+            {
+                this.middleware.SendMessage(otherNode, message);
+            }
+        }
+
+        internal void SendToOthers(object message)
+        {
+            this.logger.TraceFormat("Broadcast message to all other nodes: {0}", message);
+
+            // send request to all nodes
+            foreach (var otherNode in this.settings.OtherNodes())
+            {
+                this.middleware.SendMessage(otherNode, message);
+            }
+        }
+
+        private void MessageReceived(object obj)
         {
             this.MessagesCount++;
 
@@ -207,32 +262,14 @@ namespace RAFTiNG
             {
                 this.currentState.ProcessVote(vote);
             }
-        }
 
-        internal void SendMessage(string dest, object message)
-        {
-            this.middleware.SendMessage(dest, message);
-        }
-
-        internal void SendToAll(object message)
-        {
-            // send request to all nodes
-            foreach (var otherNode in this.settings.Nodes)
+            var appendEntries = obj as AppendEntries<T>;
+            if (appendEntries != null)
             {
-                this.middleware.SendMessage(otherNode, message);
+                this.currentState.ProcessAppendEntries(appendEntries);
             }
         }
 
-
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
-        public void Dispose()
-        {
-            if (this.currentState != null)
-            {
-                this.currentState.ExitState();
-            }
-        }
+        #endregion
     }
 }

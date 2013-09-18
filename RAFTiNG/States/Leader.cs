@@ -25,6 +25,7 @@ namespace RAFTiNG.States
 
         internal override void EnterState()
         {
+            this.BroadcastHeartbeat();
         }
 
         internal override void ProcessVoteRequest(RequestVote request)
@@ -50,10 +51,7 @@ namespace RAFTiNG.States
                         this.Node.State.CurrentTerm);
 
                     // we step down
-                    this.Node.SwitchTo(NodeStatus.Follower);
-
-                    // resend the message to process it
-                    this.Node.MessageReceived(request);
+                    this.Node.SwitchToAndProcessMessage(NodeStatus.Follower, request);
                     return;
                 }
 
@@ -71,8 +69,37 @@ namespace RAFTiNG.States
                 vote);
         }
 
+        internal override void ProcessAppendEntries(AppendEntries<T> appendEntries)
+        {
+            if (appendEntries.LeaderTerm >= this.CurrentTerm)
+            {
+                Logger.InfoFormat("Received AppendEntries from a probable leader, stepping down.");
+                this.Node.SwitchToAndProcessMessage(NodeStatus.Follower, appendEntries);
+            }
+            else
+            {
+                Logger.DebugFormat("Received AppendEntries from an invalid leader, refusing.");
+                var reply = new AppendEntriesAck(this.Node.Address, this.CurrentTerm, false);
+                this.Node.SendMessage(appendEntries.LeaderId, reply);
+            }
+        }
+
         protected override void HeartbeatTimeouted(object state)
         {
+            // send keep alive
+            this.BroadcastHeartbeat();
+        }
+
+        private void BroadcastHeartbeat()
+        {
+            var message = new AppendEntries<T>();
+            message.LeaderId = this.Node.Address;
+            message.LeaderTerm = this.CurrentTerm;
+            message.PrevLogIndex = this.Node.State.LastPersistedIndex;
+            message.PrevLogTerm = this.Node.State.LastPersistedTerm;
+            message.CommitIndex = 0;
+            this.Node.SendToOthers(message);
+            this.ResetTimeout(0, .5);
         }
     }
 }

@@ -18,6 +18,7 @@
 
 namespace RAFTiNG
 {
+    using System;
     using System.Collections.Generic;
 
     /// <summary>
@@ -82,7 +83,7 @@ namespace RAFTiNG
         /// <value>
         /// The last index of the persisted.
         /// </value>
-        public long LastPersistedIndex
+        public int LastPersistedIndex
         {
             get
             {
@@ -157,6 +158,26 @@ namespace RAFTiNG
             }
 
             return lastEntry.Index > lastLogIndex;
+        }
+
+        /// <summary>
+        /// Check if a given entry has the appropriate characteristics.
+        /// </summary>
+        /// <param name="index">The requested index.</param>
+        /// <param name="term">The expected term.</param>
+        /// <returns>true if the entry at index <paramref name="index"/> has the term <paramref name="term"/>.</returns>
+        public bool EntryMatches(int index, long term)
+        {
+            if (index >= this.LogEntries.Count)
+            {
+                return false;
+            }
+            return this.LogEntries[index].Term == term;
+        }
+
+        public void AppendEntries(int prevLogIndex, LogEntry<T>[] entries)
+        {
+            
         }
     }
 }

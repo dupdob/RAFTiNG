@@ -78,7 +78,12 @@ namespace RAFTiNG.Messages
         /// </returns>
         public override string ToString()
         {
-            return string.Format("Term: {0}, CandidateId: {1}, LastLogIndex: {2}, LastLogTerm: {3}", this.Term, this.CandidateId, this.LastLogIndex, this.LastLogTerm);
+            return string.Format(
+                "CandidateId: {1} (Term {0}, LastLogIndex: {2}, LastLogTerm: {3})",
+                this.Term,
+                this.CandidateId,
+                this.LastLogIndex,
+                this.LastLogTerm);
         }
     }
 }

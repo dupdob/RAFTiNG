@@ -33,8 +33,7 @@ namespace RAFTiNG.States
 
         internal override void EnterState()
         {
-            this.Logger.DebugFormat("Set timeout to {0} ms", this.Node.TimeOutInMs);
-            this.ResetTimeout(.1);
+            this.ResetTimeout(.2);
         }
 
         internal override void ProcessVoteRequest(RequestVote request)
@@ -87,7 +86,7 @@ namespace RAFTiNG.States
             if (vote)
             {
                 this.Node.State.VotedFor = request.CandidateId;
-                this.ResetTimeout(.1);
+                this.ResetTimeout(.2);
             }
 
             // send back the response
@@ -98,6 +97,37 @@ namespace RAFTiNG.States
         {
             this.Logger.WarnFormat(
                 "Received a vote but I am a follower. Message discarded: {0}.", vote);
+        }
+
+        internal override void ProcessAppendEntries(AppendEntries<T> appendEntries)
+        {
+            bool result;
+            if (appendEntries.LeaderTerm >= this.CurrentTerm)
+            {
+                this.ResetTimeout(.2);
+                if (!this.Node.State.EntryMatches(
+                    appendEntries.PrevLogIndex, appendEntries.PrevLogTerm))
+                {
+                    Logger.TraceFormat("Process an AppendEntries request: {0}", appendEntries);
+                    this.Node.State.AppendEntries(appendEntries.PrevLogIndex, appendEntries.Entries);
+                    result = true;
+                }
+                else
+                {
+                    // leader is older than us or log does not match
+                    Logger.DebugFormat("Reject an AppendEntries that does not match our log.");
+                    result = false;
+                }
+            }
+            else
+            {
+                // leader is older than us or log does not match
+                Logger.DebugFormat("Reject an AppendEntries from an invalid leader.");
+                result = false;
+            }
+
+            var reply = new AppendEntriesAck(this.Node.Address, this.CurrentTerm, result);
+            this.Node.SendMessage(appendEntries.LeaderId, reply);
         }
 
         protected override void HeartbeatTimeouted(object state)

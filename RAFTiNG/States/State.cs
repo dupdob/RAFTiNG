@@ -70,6 +70,8 @@ namespace RAFTiNG.States
 
         internal abstract void ProcessVote(GrantVote vote);
 
+        internal abstract void ProcessAppendEntries(AppendEntries<T> appendEntries);
+
         internal void ExitState()
         {
             if (this.HeartBeatTimer != null)
@@ -80,25 +82,30 @@ namespace RAFTiNG.States
             this.done = true;
         }
 
-        protected void ResetTimeout(double randomPart = 0.0)
+        protected void ResetTimeout(double randomPart = 0.0, double fixPart = 1.0)
         {
             if (this.HeartBeatTimer != null)
             {
                 this.HeartBeatTimer.Dispose();                
             }
 
-            double timeout;
+            int timeout;
             if (this.Node.TimeOutInMs != Timeout.Infinite)
             {
-                timeout = ((seed.NextDouble() * randomPart) + (1 - randomPart)) * this.Node.TimeOutInMs;
+                timeout =
+                    (int)
+                    (((seed.NextDouble() * randomPart) + (fixPart - randomPart))
+                     * this.Node.TimeOutInMs);
+                this.Logger.DebugFormat("Set timeout to {0} ms.", timeout);
             }
             else
             {
                 timeout = this.Node.TimeOutInMs;
+                this.Logger.Debug("Set timeout to infinite.");
             }
 
             this.HeartBeatTimer = new Timer(
-                this.HeartbeatTimeouted, null, (int)timeout, Timeout.Infinite);
+                this.HeartbeatTimeouted, null, timeout, Timeout.Infinite);
         }
 
         protected abstract void HeartbeatTimeouted(object state);

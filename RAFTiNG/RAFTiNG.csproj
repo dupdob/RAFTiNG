@@ -46,6 +46,8 @@
     <Compile Include="IMiddleware.cs" />
     <Compile Include="LogEntry.cs" />
     <Compile Include="LogExtensions.cs" />
+    <Compile Include="Messages\AppendEntries.cs" />
+    <Compile Include="Messages\AppendEntriesAck.cs" />
     <Compile Include="Messages\GrantVote.cs" />
     <Compile Include="Middleware.cs" />
     <Compile Include="Node.cs" />

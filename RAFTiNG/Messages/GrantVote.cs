@@ -65,7 +65,11 @@ namespace RAFTiNG.Messages
         /// </returns>
         public override string ToString()
         {
-            return string.Format("VoteGranted: {0}, VoterId: {1}, VoterTerm: {2}", this.VoteGranted, this.VoterId, this.VoterTerm);
+            return string.Format(
+                "Voter {1} {0} (VoterTerm: {2})",
+                this.VoteGranted ? "voted" : "did not vote",
+                this.VoterId,
+                this.VoterTerm);
         }
     }
 }

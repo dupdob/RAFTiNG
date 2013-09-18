@@ -44,7 +44,7 @@ namespace RAFTiNG.Tests
         static BasicRaftSteps()
         {
             var appender = new ConsoleAppender();
-            appender.Layout = new PatternLayout("%date{HH:mm:ss,fff} [%thread] %-5level - %message (%logger)%newline");
+            appender.Layout = new PatternLayout("%date{HH:mm:ss,fff} %-5level - %message (%logger) [%thread]%newline");
             appender.Threshold = Level.Trace;
             appender.ActivateOptions();
 

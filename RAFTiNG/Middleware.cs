@@ -21,12 +21,16 @@ namespace RAFTiNG
     using System;
     using System.Collections.Generic;
 
+    using log4net;
+
     /// <summary>
     /// Middleware simulates the message middleware used by rafting nodes to communicate and synchronize
     /// </summary>
     public class Middleware : IMiddleware
     {
         private readonly Dictionary<string, Action<object>> endpoints = new Dictionary<string, Action<object>>();
+
+        private ILog logger = LogManager.GetLogger("MockMiddleware");
 
         /// <summary>
         /// Sends a message to a specific address.
@@ -43,8 +47,10 @@ namespace RAFTiNG
                 {
                     this.endpoints[addressDest].Invoke(message);
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
+                    logger.Error("Exception raised when processing message.", e);
+
                     // exceptions must not cross middleware boundaries
                     return false;
                 }

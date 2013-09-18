@@ -47,15 +47,17 @@ namespace RAFTiNG.Tests.Unit
         public void DefaultNodeStateIsOk()
         {
             var settings = Helpers.BuildNodeSettings("1", new string[] { "2", "3", "4" });
-            var node = new Node<string>(settings);
+            using (var node = new Node<string>(settings))
+           {
 
-            Check.ThatEnum(node.Status).IsEqualTo(NodeStatus.Initializing);
+               Check.ThatEnum(node.Status).IsEqualTo(NodeStatus.Initializing);
 
-            Check.That(node.State.CurrentTerm).IsEqualTo(0L);
+               Check.That(node.State.CurrentTerm).IsEqualTo(0L);
 
-            Check.That(node.State.VotedFor).IsNullOrEmpty();
+               Check.That(node.State.VotedFor).IsNullOrEmpty();
 
-            Check.That(node.State.LogEntries).IsEmpty();
+               Check.That(node.State.LogEntries).IsEmpty();
+           }
         }
 
         [Test]
@@ -64,12 +66,13 @@ namespace RAFTiNG.Tests.Unit
             var settings = Helpers.BuildNodeSettings("1", new string[] { "1", "2", "3", "4", "5" });
             settings.TimeoutInMs = 1;
 
-            var node = new Node<string>(settings);
+            using (var node = new Node<string>(settings))
+            {
+                node.SetMiddleware(new Middleware());
+                node.Initialize();
 
-            node.SetMiddleware(new Middleware());
-            node.Initialize();
-
-            Check.ThatEnum(node.Status).IsEqualTo(NodeStatus.Follower);
+                Check.ThatEnum(node.Status).IsEqualTo(NodeStatus.Follower);
+            }
         }
 
         [Test]
@@ -78,14 +81,15 @@ namespace RAFTiNG.Tests.Unit
             var settings = Helpers.BuildNodeSettings("1", new string[] { "1", "2", "3", "4", "5" });
             settings.TimeoutInMs = 1;
 
-            var node = new Node<string>(settings);
+            using (var node = new Node<string>(settings))
+            {
+                node.SetMiddleware(new Middleware());
+                node.Initialize();
+                Thread.Sleep(30);
 
-            node.SetMiddleware(new Middleware());
-            node.Initialize();
-            Thread.Sleep(30);
-            
-            // should switch to candidate
-            Check.ThatEnum(node.Status).IsEqualTo(NodeStatus.Candidate);
+                // should switch to candidate
+                Check.ThatEnum(node.Status).IsEqualTo(NodeStatus.Candidate);
+            }
         }
 
         [Test]
@@ -94,25 +98,27 @@ namespace RAFTiNG.Tests.Unit
             Node<string> node;
             var middleware = this.InitNodes(out node);
 
-            GrantVote answer;
-            lock (this.synchro)
+            using (node)
             {
-                // request a vote, and lie about our capacity
-                middleware.SendMessage("1", new RequestVote(2, "2", 2, 2));
-
-                if (this.lastMessage == null)
+                GrantVote answer;
+                lock (this.synchro)
                 {
-                    Monitor.Wait(this.synchro, 50);
+                    // request a vote, and lie about our capacity
+                    middleware.SendMessage("1", new RequestVote(2, "2", 2, 2));
+
+                    if (this.lastMessage == null)
+                    {
+                        Monitor.Wait(this.synchro, 50);
+                    }
+                    Check.That(this.lastMessage).IsNotEqualTo(null).And.IsInstanceOf<GrantVote>();
+
+                    answer = this.lastMessage as GrantVote;
+                    Check.That(node.State.VotedFor).IsEqualTo("2");
                 }
-                Check.That(this.lastMessage).IsNotEqualTo(null).And.IsInstanceOf<GrantVote>();
 
-                answer = this.lastMessage as GrantVote;
-                Check.That(node.State.VotedFor).IsEqualTo("2");
+                // did we get the vote?
+                Check.That(answer.VoteGranted).IsTrue();
             }
-
-            // did we get the vote?
-            Check.That(answer.VoteGranted).IsTrue();
-
         }
 
         [Test]
@@ -121,13 +127,16 @@ namespace RAFTiNG.Tests.Unit
             Node<string> node;
             var middleware = this.InitNodes(out node);
 
-            // now, add entries
-            node.AddEntry("dummy");
+            using (node)
+            {
+                // now, add entries
+                node.AddEntry("dummy");
 
-            node.State.CurrentTerm = 2;
-            node.AddEntry("dummy");
-            node.AddEntry("dummy");
-            this.RequestAndGetVote(middleware, node, true);
+                node.State.CurrentTerm = 2;
+                node.AddEntry("dummy");
+                node.AddEntry("dummy");
+                this.RequestAndGetVote(middleware, node, true);
+            }
         }
 
         [Test]
@@ -135,15 +144,18 @@ namespace RAFTiNG.Tests.Unit
         {
             Node<string> node;
             var middleware = this.InitNodes(out node);
+            using (node)
+            {
 
-            // now, add entries
-            node.AddEntry("dummy");
+                // now, add entries
+                node.AddEntry("dummy");
 
-            node.State.CurrentTerm = 1;
-            node.AddEntry("dummy");
-            node.AddEntry("dummy");
-            node.AddEntry("dummy");
-            this.RequestAndGetVote(middleware, node, true);
+                node.State.CurrentTerm = 1;
+                node.AddEntry("dummy");
+                node.AddEntry("dummy");
+                node.AddEntry("dummy");
+                this.RequestAndGetVote(middleware, node, true);
+            }
         }
 
         [Test]
@@ -152,14 +164,17 @@ namespace RAFTiNG.Tests.Unit
             Node<string> node;
             var middleware = this.InitNodes(out node);
 
-            // now, add entries
-            node.AddEntry("dummy");
+            using (node)
+            {
+                // now, add entries
+                node.AddEntry("dummy");
 
-            node.State.CurrentTerm = 2;
-            node.AddEntry("dummy");
-            node.AddEntry("dummy");
-            node.AddEntry("dummy");
-            this.RequestAndGetVote(middleware, node, false);
+                node.State.CurrentTerm = 2;
+                node.AddEntry("dummy");
+                node.AddEntry("dummy");
+                node.AddEntry("dummy");
+                this.RequestAndGetVote(middleware, node, false);
+            }
         }
 
         [Test]
@@ -168,14 +183,49 @@ namespace RAFTiNG.Tests.Unit
             Node<string> node;
             var middleware = this.InitNodes(out node);
 
-            // now, add entries
-            node.AddEntry("dummy");
+            using (node)
+            {
+                // now, add entries
+                node.AddEntry("dummy");
 
-            node.State.CurrentTerm = 4;
+                node.State.CurrentTerm = 4;
 
-            this.RequestAndGetVote(middleware, node, false);
+                this.RequestAndGetVote(middleware, node, false);
+            }
         }
 
+        [Test]
+        public void NodeStaysAFollowerWhenReceiveAppendEntries()
+        {
+            var settings = Helpers.BuildNodeSettings("1", new string[] { "1", "2", "3", "4", "5" });
+            settings.TimeoutInMs = 10;
+
+            var node = new Node<string>(settings);
+
+            using (node)
+            {
+                var middleware = new Middleware();
+                node.SetMiddleware(middleware);
+                node.Initialize();
+                Thread.Sleep(30);
+
+                // should switch to candidate
+                Check.ThatEnum(node.Status).IsEqualTo(NodeStatus.Candidate);
+
+                // now we pretend there is a leader
+                var message = new AppendEntries<string>();
+
+                message.LeaderId = "2";
+                message.LeaderTerm = 2;
+                message.PrevLogIndex = 0;
+                message.PrevLogTerm = 0;
+                middleware.SendMessage("1", message);
+
+                Check.ThatEnum(node.Status).IsEqualTo(NodeStatus.Follower);
+            }
+        }
+
+        // helper to send a request for vote and wait for the answer
         private void RequestAndGetVote(Middleware middleware, Node<string> node, bool succeed)
         {
             lock (this.synchro)
@@ -204,6 +254,7 @@ namespace RAFTiNG.Tests.Unit
 
         }
 
+        // helper to initilize setip
         private Middleware InitNodes(out Node<string> node)
         {
             var middleware = new Middleware();
