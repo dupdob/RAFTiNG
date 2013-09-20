@@ -64,7 +64,7 @@ namespace RAFTiNG.Tests.Unit
         public void NodeInitStartsTheAgent()
         {
             var settings = Helpers.BuildNodeSettings("1", new string[] { "1", "2", "3", "4", "5" });
-            settings.TimeoutInMs = 1;
+            settings.TimeoutInMs = 10;
 
             using (var node = new Node<string>(settings))
             {
@@ -79,7 +79,7 @@ namespace RAFTiNG.Tests.Unit
         public void NodeSwitchesToCandidate()
         {
             var settings = Helpers.BuildNodeSettings("1", new string[] { "1", "2", "3", "4", "5" });
-            settings.TimeoutInMs = 1;
+            settings.TimeoutInMs = 10;
 
             using (var node = new Node<string>(settings))
             {
@@ -197,9 +197,8 @@ namespace RAFTiNG.Tests.Unit
         [Test]
         public void NodeStaysAFollowerWhenReceiveAppendEntries()
         {
-            var settings = Helpers.BuildNodeSettings("1", new string[] { "1", "2", "3", "4", "5" });
+            var settings = Helpers.BuildNodeSettings("1", new[] { "1", "2", "3", "4", "5" });
             settings.TimeoutInMs = 10;
-
             var node = new Node<string>(settings);
 
             using (node)
@@ -216,12 +215,17 @@ namespace RAFTiNG.Tests.Unit
                 var message = new AppendEntries<string>();
 
                 message.LeaderId = "2";
-                message.LeaderTerm = 2;
+                message.LeaderTerm = 5;
                 message.PrevLogIndex = 0;
                 message.PrevLogTerm = 0;
+                var entry = new LogEntry<string>("dummy", 1L, 0);
+                message.Entries = new[] {entry};
                 middleware.SendMessage("1", message);
 
                 Check.ThatEnum(node.Status).IsEqualTo(NodeStatus.Follower);
+
+                Check.That(node.State.LogEntries.Count).IsEqualTo(1);
+
             }
         }
 

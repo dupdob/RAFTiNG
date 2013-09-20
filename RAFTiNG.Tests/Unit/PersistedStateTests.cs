@@ -81,5 +81,11 @@ namespace RAFTiNG.Tests.Unit
             test.AddEntry(new LogEntry<string>("dummy"));
             Check.That(test.EntryMatches(0, 1L)).IsTrue();
         }
+
+        [Test]
+        public void AppendEntries()
+        {
+            
+        }
     }
 }

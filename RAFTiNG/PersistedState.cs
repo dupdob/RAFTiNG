@@ -157,7 +157,7 @@ namespace RAFTiNG
                 return false;
             }
 
-            return lastEntry.Index > lastLogIndex;
+            return lastEntryId > lastLogIndex;
         }
 
         /// <summary>
@@ -175,9 +175,31 @@ namespace RAFTiNG
             return this.LogEntries[index].Term == term;
         }
 
-        public void AppendEntries(int prevLogIndex, LogEntry<T>[] entries)
+        /// <summary>
+        /// Apply a set of <see cref="LogEntry{T}"/> to this log.
+        /// </summary>
+        /// <param name="prevLogIndex">first index to replace/add</param>
+        /// <param name="entries">List of log entries.</param>
+        public void AppendEntries(int prevLogIndex, IEnumerable<LogEntry<T>> entries)
         {
-            
+            if (entries == null)
+            {
+                // nothing to add
+                return;
+            }
+
+            foreach (var logEntry in entries)
+            {
+               if (prevLogIndex == this.LogEntries.Count)
+               {
+                   this.LogEntries.Add(logEntry);
+               }
+               else
+               {
+                   this.LogEntries[prevLogIndex] = logEntry;
+               }
+                prevLogIndex++;
+            }
         }
     }
 }

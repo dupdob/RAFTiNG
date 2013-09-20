@@ -1,4 +1,4 @@
-// --------------------------------------------------------------------------------------------------------------------
+﻿//  --------------------------------------------------------------------------------------------------------------------
 // <copyright file="Helpers.cs" company="Cyrille DUPUYDAUBY">
 //   Copyright 2013 Cyrille DUPUYDAUBY
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,14 +11,16 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 // </copyright>
-// <summary>
-//   
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
-
-namespace RAFTiNG.Tests.Unit
+//  --------------------------------------------------------------------------------------------------------------------
+namespace RAFTiNG.Tests
 {
     using System.Collections.Generic;
+
+    using log4net;
+    using log4net.Appender;
+    using log4net.Config;
+    using log4net.Core;
+    using log4net.Layout;
 
     internal static class Helpers
     {
@@ -31,7 +33,7 @@ namespace RAFTiNG.Tests.Unit
                 if (workNodes.Contains(nodeId))
                 {
                     workNodes.Remove(nodeId);
-                }                
+                }
             }
             else
             {
@@ -39,12 +41,27 @@ namespace RAFTiNG.Tests.Unit
             }
 
             var settings = new NodeSettings
-                               {
-                                   NodeId = nodeId,
-                                   TimeoutInMs = 10,
-                                   Nodes = workNodes.ToArray()
-                               };
+            {
+                NodeId = nodeId,
+                TimeoutInMs = 10,
+                Nodes = workNodes.ToArray()
+            };
             return settings;
+        }
+
+        internal static void InitLog4Net()
+        {
+            var appender = new ConsoleAppender();
+            appender.Layout =
+                new PatternLayout("%date{HH:mm:ss,fff} %-5level - %message (%logger) [%thread]%newline");
+            appender.Threshold = Level.Trace;
+            appender.ActivateOptions();
+
+            // Configure the root logger.
+            var h = (log4net.Repository.Hierarchy.Hierarchy)LogManager.GetRepository();
+            var rootLogger = h.Root;
+            rootLogger.Level = h.LevelMap["TRACE"];
+            BasicConfigurator.Configure(appender);
         }
     }
 }

@@ -58,6 +58,7 @@
       <DependentUpon>BasicRaft.feature</DependentUpon>
     </Compile>
     <Compile Include="Acceptance\BasicRaftSteps.cs" />
+    <Compile Include="Helpers.cs" />
     <Compile Include="Unit\PersistedStateTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Integration\RaftCommunication.feature.cs">
@@ -67,7 +68,6 @@
     </Compile>
     <Compile Include="Integration\RaftCommunicationSteps.cs" />
     <Compile Include="Unit\BasicNodeTest.cs" />
-    <Compile Include="Unit\Helpers.cs" />
     <Compile Include="Unit\MiddlewareTests.cs" />
     <Compile Include="Unit\SettingsTest.cs" />
   </ItemGroup>

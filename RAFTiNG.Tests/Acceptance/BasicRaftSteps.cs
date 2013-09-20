@@ -18,16 +18,12 @@
 
 namespace RAFTiNG.Tests
 {
+    using System;
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.Globalization;
     using System.Linq;
     using System.Threading;
-
-    using log4net.Appender;
-    using log4net.Config;
-    using log4net.Core;
-    using log4net.Layout;
 
     using NFluent;
 
@@ -35,7 +31,7 @@ namespace RAFTiNG.Tests
 
     [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1600:ElementsMustBeDocumented",
         Justification = "Reviewed. Suppression is OK here.")][Binding]
-    public class BasicRaftSteps
+    public class BasicRaftSteps: IDisposable
     {
         private Middleware middleware;
 
@@ -43,16 +39,7 @@ namespace RAFTiNG.Tests
 
         static BasicRaftSteps()
         {
-            var appender = new ConsoleAppender();
-            appender.Layout = new PatternLayout("%date{HH:mm:ss,fff} %-5level - %message (%logger) [%thread]%newline");
-            appender.Threshold = Level.Trace;
-            appender.ActivateOptions();
-
-            // Configure the root logger.
-            var h = (log4net.Repository.Hierarchy.Hierarchy)log4net.LogManager.GetRepository();
-            log4net.Repository.Hierarchy.Logger rootLogger = h.Root;
-            rootLogger.Level = h.LevelMap["TRACE"];
-            BasicConfigurator.Configure(appender);
+            Helpers.InitLog4Net();
         }
 
         [Given(@"I have deployed (.*) instances")]
@@ -99,6 +86,17 @@ namespace RAFTiNG.Tests
         public void WhenIWaitSeconde(int p0)
         {
             Thread.Sleep(p0 * 1000);
+        }
+
+        /// <summary>
+        /// Exécute les tâches définies par l'application associées à la libération ou à la redéfinition des ressources non managées.
+        /// </summary>
+        public void Dispose()
+        {
+            foreach (var node in nodes)
+            {
+                node.Dispose();
+            }
         }
     }
 }
