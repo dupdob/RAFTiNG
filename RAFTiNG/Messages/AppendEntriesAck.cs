@@ -19,7 +19,6 @@ namespace RAFTiNG.Messages
     /// </summary>
     public class AppendEntriesAck
     {
-
         private string nodeId;
 
         private long term;
@@ -51,6 +50,7 @@ namespace RAFTiNG.Messages
             {
                 return this.term;
             }
+
             set
             {
                 this.term = value;
@@ -69,6 +69,7 @@ namespace RAFTiNG.Messages
             {
                 return this.success;
             }
+
             set
             {
                 this.success = value;

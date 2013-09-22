@@ -92,12 +92,14 @@ namespace RAFTiNG.States
 
         private void BroadcastHeartbeat()
         {
-            var message = new AppendEntries<T>();
-            message.LeaderId = this.Node.Address;
-            message.LeaderTerm = this.CurrentTerm;
-            message.PrevLogIndex = this.Node.State.LastPersistedIndex;
-            message.PrevLogTerm = this.Node.State.LastPersistedTerm;
-            message.CommitIndex = 0;
+            var message = new AppendEntries<T>
+                              {
+                                  LeaderId = this.Node.Address,
+                                  LeaderTerm = this.CurrentTerm,
+                                  PrevLogIndex = this.Node.State.LastPersistedIndex,
+                                  PrevLogTerm = this.Node.State.LastPersistedTerm,
+                                  CommitIndex = 0
+                              };
             this.Node.SendToOthers(message);
             this.ResetTimeout(0, .5);
         }

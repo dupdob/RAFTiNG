@@ -197,35 +197,38 @@ namespace RAFTiNG.Tests.Unit
         [Test]
         public void NodeStaysAFollowerWhenReceiveAppendEntries()
         {
-            var settings = Helpers.BuildNodeSettings("1", new[] { "1", "2", "3", "4", "5" });
-            settings.TimeoutInMs = 10;
-            var node = new Node<string>(settings);
-
-            using (node)
+            using (Helpers.InitLog4Net())
             {
-                var middleware = new Middleware();
-                node.SetMiddleware(middleware);
-                node.Initialize();
-                Thread.Sleep(30);
+                var settings = Helpers.BuildNodeSettings("1", new[] { "1", "2", "3", "4", "5" });
+                settings.TimeoutInMs = 10;
+                var node = new Node<string>(settings);
 
-                // should switch to candidate
-                Check.ThatEnum(node.Status).IsEqualTo(NodeStatus.Candidate);
+                using (node)
+                {
+                    var middleware = new Middleware();
+                    node.SetMiddleware(middleware);
+                    node.Initialize();
+                    Thread.Sleep(50);
 
-                // now we pretend there is a leader
-                var message = new AppendEntries<string>();
+                    // should switch to candidate
+                    Check.ThatEnum(node.Status).IsEqualTo(NodeStatus.Candidate);
 
-                message.LeaderId = "2";
-                message.LeaderTerm = 5;
-                message.PrevLogIndex = 0;
-                message.PrevLogTerm = 0;
-                var entry = new LogEntry<string>("dummy", 1L, 0);
-                message.Entries = new[] {entry};
-                middleware.SendMessage("1", message);
+                    // now we pretend there is a leader
+                    var message = new AppendEntries<string>();
 
-                Check.ThatEnum(node.Status).IsEqualTo(NodeStatus.Follower);
+                    message.LeaderId = "2";
+                    message.LeaderTerm = 5;
+                    message.PrevLogIndex = -1;
+                    message.PrevLogTerm = 0;
+                    var entry = new LogEntry<string>("dummy", 1L);
+                    message.Entries = new[] { entry };
+                    middleware.SendMessage("1", message);
 
-                Check.That(node.State.LogEntries.Count).IsEqualTo(1);
+                    Check.ThatEnum(node.Status).IsEqualTo(NodeStatus.Follower);
 
+                    Check.That(node.State.LogEntries.Count).IsEqualTo(1);
+
+                }
             }
         }
 

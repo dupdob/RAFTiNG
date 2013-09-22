@@ -18,7 +18,6 @@
 
 namespace RAFTiNG
 {
-    using System;
     using System.Collections.Generic;
 
     /// <summary>
@@ -87,7 +86,7 @@ namespace RAFTiNG
         {
             get
             {
-                return this.LogEntries.Count > 0 ? this.LogEntries[this.LogEntries.Count - 1].Index : 0;
+                return this.LogEntries.Count > 0 ? this.LogEntries.Count - 1 : -1;
             }
         }
 
@@ -110,7 +109,7 @@ namespace RAFTiNG
             if (logEntry.Term == 0)
             {
                 var newEntry = new LogEntry<T>(
-                    logEntry.Command, this.CurrentTerm, this.LogEntries.Count);
+                    logEntry.Command, this.CurrentTerm);
                 this.LogEntries.Add(newEntry);
             }
             else
@@ -125,7 +124,7 @@ namespace RAFTiNG
         /// <param name="command">The command.</param>
         public void AddEntry(T command)
         {
-            var newEntry = new LogEntry<T>(command, this.currentTerm, this.LogEntries.Count);
+            var newEntry = new LogEntry<T>(command, this.currentTerm);
             this.LogEntries.Add(newEntry);
         }
 
@@ -168,10 +167,11 @@ namespace RAFTiNG
         /// <returns>true if the entry at index <paramref name="index"/> has the term <paramref name="term"/>.</returns>
         public bool EntryMatches(int index, long term)
         {
-            if (index >= this.LogEntries.Count)
+            if (index >= this.LogEntries.Count || index < 0)
             {
-                return false;
+                return index == -1;
             }
+
             return this.LogEntries[index].Term == term;
         }
 
@@ -187,7 +187,7 @@ namespace RAFTiNG
                 // nothing to add
                 return;
             }
-
+            prevLogIndex++;
             foreach (var logEntry in entries)
             {
                if (prevLogIndex == this.LogEntries.Count)
@@ -198,6 +198,7 @@ namespace RAFTiNG
                {
                    this.LogEntries[prevLogIndex] = logEntry;
                }
+
                 prevLogIndex++;
             }
         }

@@ -37,13 +37,10 @@ namespace RAFTiNG
         /// </param>
         /// <param name="term">Current term when command is stored.
         /// </param>
-        /// <param name="index">Index for the current command.
-        /// </param>
-        public LogEntry(T command, long term, int index)
+        public LogEntry(T command, long term)
         {
             this.Command = command;
             this.Term = term;
-            this.Index = index;
         }
 
         /// <summary>
@@ -68,11 +65,6 @@ namespace RAFTiNG
         /// Gets the term for the command.
         /// </summary>
         public long Term { get; private set; }
-
-        /// <summary>
-        /// Gets the index for this command.
-        /// </summary>
-        public int Index { get; private set; }
 
         #endregion
 
@@ -115,7 +107,7 @@ namespace RAFTiNG
         {
             unchecked
             {
-                return (this.Term.GetHashCode() * 397) ^ this.Index.GetHashCode();
+                return this.Term.GetHashCode();
             }
         }
 
@@ -130,7 +122,7 @@ namespace RAFTiNG
         /// </returns>
         private bool Equals(LogEntry<T> other)
         {
-            return this.Term == other.Term && this.Index == other.Index;
+            return this.Term == other.Term;
         }
 
         #endregion

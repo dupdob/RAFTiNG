@@ -47,9 +47,8 @@ namespace RAFTiNG.Tests.Unit
             test.AddEntry(new LogEntry<string>("dummy"));
             test.AddEntry(new LogEntry<string>("dummy"));
 
-            Check.That(test.LogEntries[0].Index).IsEqualTo(0);
+            Check.That(test.LogEntries[0].Term).IsEqualTo(0L);
             Check.That(test.LogEntries[1].Term).IsEqualTo(0L);
-            Check.That(test.LogEntries[1].Index).IsEqualTo(1);
         }
 
         [Test]
@@ -85,7 +84,12 @@ namespace RAFTiNG.Tests.Unit
         [Test]
         public void AppendEntries()
         {
-            
+            var test = new PersistedState<string> { CurrentTerm = 1 };
+
+            test.AddEntry(new LogEntry<string>("dummy"));
+            test.CurrentTerm = 2;
+            test.AppendEntries(-1,  new[] {new LogEntry<string>("dummy", 2)});
+            Check.That(test.EntryMatches(0, 2L)).IsTrue();
         }
     }
 }

@@ -39,15 +39,19 @@ namespace RAFTiNG.States
         internal override void EnterState()
         {
             this.voteReceived = new Dictionary<string, GrantVote>();
-            this.ResetTimeout(.3);
-
+            
             // increase term
             var nextTerm = this.Node.IncrementTerm();
 
+            var candidateId = this.Node.Address;
+            this.Node.State.VotedFor = candidateId;
+            this.ProcessVote(new GrantVote(true, candidateId, nextTerm));
+            
             // send vote request
             this.Logger.TraceFormat("Broadcast a vote request");
-            var request = new RequestVote(nextTerm, this.Node.Address, this.Node.State.LastPersistedIndex, this.Node.State.LastPersistedTerm);
-            this.Node.SendToAll(request);
+            var request = new RequestVote(nextTerm, candidateId, this.Node.State.LastPersistedIndex, this.Node.State.LastPersistedTerm);
+            this.Node.SendToOthers(request);
+            this.ResetTimeout(.3);
         }
 
         internal override void ProcessVoteRequest(RequestVote request)

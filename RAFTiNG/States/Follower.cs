@@ -104,8 +104,7 @@ namespace RAFTiNG.States
             bool result;
             if (appendEntries.LeaderTerm >= this.CurrentTerm)
             {
-                this.ResetTimeout(.2);
-                if (!this.Node.State.EntryMatches(
+                if (this.Node.State.EntryMatches(
                     appendEntries.PrevLogIndex, appendEntries.PrevLogTerm))
                 {
                     Logger.TraceFormat("Process an AppendEntries request: {0}", appendEntries);
@@ -128,6 +127,7 @@ namespace RAFTiNG.States
 
             var reply = new AppendEntriesAck(this.Node.Address, this.CurrentTerm, result);
             this.Node.SendMessage(appendEntries.LeaderId, reply);
+            this.ResetTimeout(.2);
         }
 
         protected override void HeartbeatTimeouted(object state)

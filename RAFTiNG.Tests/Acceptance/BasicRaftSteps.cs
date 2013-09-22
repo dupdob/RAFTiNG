@@ -35,11 +35,13 @@ namespace RAFTiNG.Tests
     {
         private Middleware middleware;
 
+        private IDisposable logHandle;
+
         private List<Node<string>> nodes;
 
-        static BasicRaftSteps()
+        public BasicRaftSteps()
         {
-            Helpers.InitLog4Net();
+            logHandle = Helpers.InitLog4Net();
         }
 
         [Given(@"I have deployed (.*) instances")]
@@ -93,6 +95,7 @@ namespace RAFTiNG.Tests
         /// </summary>
         public void Dispose()
         {
+            logHandle.Dispose();
             foreach (var node in nodes)
             {
                 node.Dispose();

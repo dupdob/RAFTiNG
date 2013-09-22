@@ -94,8 +94,12 @@ namespace RAFTiNG.States
             {
                 timeout =
                     (int)
-                    (((seed.NextDouble() * randomPart) + (fixPart - randomPart))
+                    (((seed.NextDouble() * randomPart * 2.0) + (fixPart - randomPart))
                      * this.Node.TimeOutInMs);
+                if (timeout < 0)
+                {
+                    timeout = 0;
+                }
                 this.Logger.DebugFormat("Set timeout to {0} ms.", timeout);
             }
             else

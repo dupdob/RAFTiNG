@@ -14,6 +14,7 @@
 //  --------------------------------------------------------------------------------------------------------------------
 namespace RAFTiNG.Tests
 {
+    using System;
     using System.Collections.Generic;
 
     using log4net;
@@ -49,12 +50,15 @@ namespace RAFTiNG.Tests
             return settings;
         }
 
-        internal static void InitLog4Net()
+        internal static IDisposable InitLog4Net()
         {
-            var appender = new ConsoleAppender();
-            appender.Layout =
-                new PatternLayout("%date{HH:mm:ss,fff} %-5level - %message (%logger) [%thread]%newline");
-            appender.Threshold = Level.Trace;
+            var appender = new ConsoleAppender
+                               {
+                                   Layout =
+                                       new PatternLayout(
+                                       "%date{HH:mm:ss,fff} %-5level - %message (%logger) [%thread]%newline"),
+                                   Threshold = Level.Trace
+                               };
             appender.ActivateOptions();
 
             // Configure the root logger.
@@ -62,6 +66,18 @@ namespace RAFTiNG.Tests
             var rootLogger = h.Root;
             rootLogger.Level = h.LevelMap["TRACE"];
             BasicConfigurator.Configure(appender);
+            return new LogWrapper();
+        }
+
+        private class LogWrapper: IDisposable 
+        {
+            /// <summary>
+            /// Exécute les tâches définies par l'application associées à la libération ou à la redéfinition des ressources non managées.
+            /// </summary>
+            public void Dispose()
+            {
+                log4net.LogManager.Shutdown();
+            }
         }
     }
 }
