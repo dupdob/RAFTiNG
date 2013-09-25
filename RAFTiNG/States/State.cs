@@ -100,6 +100,7 @@ namespace RAFTiNG.States
                 {
                     timeout = 0;
                 }
+
                 this.Logger.DebugFormat("Set timeout to {0} ms.", timeout);
             }
             else
@@ -113,5 +114,10 @@ namespace RAFTiNG.States
         }
 
         protected abstract void HeartbeatTimeouted(object state);
+
+        protected internal virtual void ProcessAppendEntriesAck(AppendEntriesAck appendEntriesAck)
+        {
+            this.Logger.WarnFormat("Received ProcessAppendEntriesAck but I am not a leader, discarded: {0}", appendEntriesAck);
+        }
     }
 }

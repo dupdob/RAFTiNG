@@ -15,46 +15,92 @@
 
 namespace RAFTiNG.Tests.Unit
 {
+    using System;
+    using System.Diagnostics;
     using System.Threading;
 
     using NFluent;
 
     using NUnit.Framework;
 
+    using RAFTiNG.Messages;
+
     [TestFixture]
     public class LogReplicationTest
     {
+        private readonly object synchro = new object();
+
+        private object lastMessage;
+
         [Test]
         public void EmptyLogIsfilledTest()
         {
             using (Helpers.InitLog4Net())
             {
-                var settings = Helpers.BuildNodeSettings("1", new[] { "1", "2" });
-                settings.TimeoutInMs = Timeout.Infinite;
-                var logReplicator = new LogReplicator<string>();
                 var middleware = new Middleware();
+                var settings = Helpers.BuildNodeSettings("1", new[] { "1", "2" });
 
-                using (var node = new Node<string>(settings))
+                using (var leader = new Node<string>(settings))
                 {
-                    settings = Helpers.BuildNodeSettings("2", new[] { "1", "2" });
+                    int initIndex = -1;
+                    long term = 0;
                     settings.TimeoutInMs = 1;
-                    var leader = new Node<string>(settings);
                     leader.SetMiddleware(middleware);
-                    node.SetMiddleware(middleware);
-                    node.Initialize();
-                    leader.Initialize();
-                    Thread.Sleep(30);
+                    // we inject
+                    leader.State.AppendEntries(-1, new LogEntry<string>[]{new LogEntry<string>("one"), new LogEntry<string>("two"), });
 
-                    // should stay follower
-                    Check.ThatEnum(node.Status).IsEqualTo(NodeStatus.Follower);
-
-                    Check.ThatEnum(leader.Status).IsEqualTo(NodeStatus.Leader);
+                    middleware.RegisterEndPoint("2", OnMessate);
+                    lock (synchro)
+                    {
+                        var timer = new Stopwatch();
+                        leader.Initialize();
+                        timer.Start();
+                        for (;;)
+                        {
+                            var millisecondsTimeout = Math.Max(3000 - (int)timer.ElapsedMilliseconds, 0);
+                            if (this.lastMessage == null && !Monitor.Wait(this.synchro, millisecondsTimeout))
+                            {
+                                break;
+                            }
+                            var message = this.lastMessage;
+                            this.lastMessage = null;
+                            if (message is RequestVote)
+                            {
+                                // we vote for the leader
+                                middleware.SendMessage("1", new GrantVote(true, "2", 0));
+                            }
+                            if (message is AppendEntries<string>)
+                            {
+                                var appendMessage = message as AppendEntries<string>;
+                                term = appendMessage.LeaderTerm;
+                                if (appendMessage.PrevLogIndex != initIndex)
+                                {
+                                    middleware.SendMessage("1", new AppendEntriesAck("2", 0, false));
+                                }
+                                else
+                                {
+                                    initIndex += (int)appendMessage.Entries.Count();
+                                    middleware.SendMessage("1", new AppendEntriesAck("2", 0, true));
+                                }
+                            }
+                            if (millisecondsTimeout == 0)
+                            {
+                                break;
+                            }
+                        }
+                        Check.That(initIndex).IsEqualTo(1);
+                    }
                 }
             }
         }
-    }
 
-    public class LogReplicator<T>
-    {
+        private void OnMessate(object obj)
+        {
+            lock (this.synchro)
+            {
+                this.lastMessage = obj;
+                Monitor.Pulse(this.synchro);
+            }
+        }
     }
 }

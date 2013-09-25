@@ -39,6 +39,20 @@ namespace RAFTiNG.Messages
         }
 
         /// <summary>
+        /// Gets the node id.
+        /// </summary>
+        /// <value>
+        /// The node id.
+        /// </value>
+        public string NodeId
+        {
+            get
+            {
+                return this.nodeId;
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the term.
         /// </summary>
         /// <value>
@@ -74,6 +88,17 @@ namespace RAFTiNG.Messages
             {
                 this.success = value;
             }
+        }
+
+        /// <summary>
+        /// Returns a <see cref="System.String" /> that represents this instance.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="System.String" /> that represents this instance.
+        /// </returns>
+        public override string ToString()
+        {
+            return string.Format("AppendEntriesAck: NodeId: {0}, Term: {1}, Success: {2}", this.nodeId, this.term, this.success);
         }
     }
 }

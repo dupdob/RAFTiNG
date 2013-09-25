@@ -14,10 +14,15 @@
 //  --------------------------------------------------------------------------------------------------------------------
 namespace RAFTiNG.States
 {
+    using System;
+    using System.Collections.Generic;
+
     using RAFTiNG.Messages;
 
     internal class Leader<T> : State<T>
     {
+        private readonly Dictionary<string, FollowerLogState> states = new Dictionary<string, FollowerLogState>();
+
         public Leader(Node<T> node)
             : base(node)
         {
@@ -25,6 +30,12 @@ namespace RAFTiNG.States
 
         internal override void EnterState()
         {
+            // keep track of followers log state
+            foreach (var otherNode in this.Node.Settings.OtherNodes())
+            {
+                this.states[otherNode] = new FollowerLogState(this.Node.State.LastPersistedIndex, false);
+            }
+
             this.BroadcastHeartbeat();
         }
 
@@ -84,6 +95,54 @@ namespace RAFTiNG.States
             }
         }
 
+        protected internal override void ProcessAppendEntriesAck(AppendEntriesAck appendEntriesAck)
+        {
+            int entriesToSend;
+            var followerId = appendEntriesAck.NodeId;
+            var followerLogState = this.states[followerId];
+            if (!appendEntriesAck.Success)
+            {
+                followerLogState.LastSentIndex--;
+                var message = new AppendEntries<T>
+                {
+                    LeaderId = this.Node.Address,
+                    LeaderTerm = this.CurrentTerm,
+                    PrevLogIndex = followerLogState.LastSentIndex,
+                    PrevLogTerm = followerLogState.LastSentIndex == -1 ? 0 : this.Node.State.LogEntries[followerLogState.LastSentIndex].Term,
+                    CommitIndex = 0
+                };
+                this.Node.SendMessage(followerId, message);
+            }
+            else
+            {
+                entriesToSend = Math.Max(
+                    0,
+                    Math.Min(10, this.Node.State.LastPersistedIndex - followerLogState.LastSentIndex));
+                if (entriesToSend == 0)
+                {
+                    return;
+                }
+
+                var message = new AppendEntries<T>
+                {
+                    LeaderId = this.Node.Address,
+                    LeaderTerm = this.CurrentTerm,
+                    PrevLogIndex = followerLogState.LastSentIndex,
+                    PrevLogTerm = followerLogState.LastSentIndex == -1 ? 0 : this.Node.State.LogEntries[followerLogState.LastSentIndex].Term,
+                    Entries = new LogEntry<T>[entriesToSend],
+                    CommitIndex = 0
+                };
+
+                for (var i = 0; i < entriesToSend; i++)
+                {
+                    followerLogState.LastSentIndex++;
+                    message.Entries[i] = this.Node.State.LogEntries[followerLogState.LastSentIndex];
+                }
+
+                this.Node.SendMessage(followerId, message);
+            }
+        }
+
         protected override void HeartbeatTimeouted(object state)
         {
             // send keep alive
@@ -92,16 +151,48 @@ namespace RAFTiNG.States
 
         private void BroadcastHeartbeat()
         {
-            var message = new AppendEntries<T>
-                              {
-                                  LeaderId = this.Node.Address,
-                                  LeaderTerm = this.CurrentTerm,
-                                  PrevLogIndex = this.Node.State.LastPersistedIndex,
-                                  PrevLogTerm = this.Node.State.LastPersistedTerm,
-                                  CommitIndex = 0
-                              };
-            this.Node.SendToOthers(message);
+            foreach (var entry in this.states)
+            {
+                var followerLogState = entry.Value;
+
+                if (followerLogState.LastSentIndex == this.Node.State.LastPersistedIndex)
+                {
+                    var folllowerId = entry.Key;
+                    var message = new AppendEntries<T>
+                    {
+                        LeaderId = this.Node.Address,
+                        LeaderTerm = this.CurrentTerm,
+                        PrevLogIndex = followerLogState.LastSentIndex,
+                        PrevLogTerm =
+                            followerLogState.LastSentIndex == -1
+                                ? 0
+                                : this.Node.State.LogEntries[
+                                    followerLogState.LastSentIndex].Term,
+                        CommitIndex = 0
+                    };
+                    this.Node.SendMessage(folllowerId, message);
+                }
+            }
+
             this.ResetTimeout(0, .5);
+        }
+
+        private class FollowerLogState
+        {
+            public int LastSentIndex { get; set; }
+
+            public bool SynchroEstablished { get; set; }
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="FollowerLogState"/> class.
+            /// </summary>
+            /// <param name="lastSentIndex">Last index of the sent.</param>
+            /// <param name="synchroEstablished">if set to <c>true</c> [synchro established].</param>
+            public FollowerLogState(int lastSentIndex, bool synchroEstablished)
+            {
+                this.LastSentIndex = lastSentIndex;
+                this.SynchroEstablished = synchroEstablished;
+            }
         }
     }
 }

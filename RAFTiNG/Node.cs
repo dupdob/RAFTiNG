@@ -255,18 +255,27 @@ namespace RAFTiNG
             if (requestVote != null)
             {
                 this.currentState.ProcessVoteRequest(requestVote);
+                return;
             }
 
             var vote = obj as GrantVote;
             if (vote != null)
             {
                 this.currentState.ProcessVote(vote);
+                return;
             }
 
             var appendEntries = obj as AppendEntries<T>;
             if (appendEntries != null)
             {
                 this.currentState.ProcessAppendEntries(appendEntries);
+                return;
+            }
+
+            var appendEntriesAck = obj as AppendEntriesAck;
+            if (appendEntriesAck != null)
+            {
+                this.currentState.ProcessAppendEntriesAck(appendEntriesAck);
             }
         }
 
