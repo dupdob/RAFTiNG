@@ -30,7 +30,7 @@ Implementation notes
  * Persistence is atomic: current implementation assumes that corruption cannot happen: information is available and correct or is missing.
  * Middleware
   * order of messages is guaranteed between any two points, but messages may be lost.
-  * messages can be send to self. Note that this may be implemented at the API level.
+  * ~~messages can be send to self. Note that this may be implemented at the API level~~.
   * assumption is that the middleware is hacking safe.
   * it does not need to provide intrisic request reply support.
   * it may or may not provide early failure detection (think TCP RST signal).
