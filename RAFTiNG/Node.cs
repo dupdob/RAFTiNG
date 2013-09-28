@@ -26,7 +26,9 @@ namespace RAFTiNG
     using RAFTiNG.States;
 
     /// <summary>
-    /// Implements a Node as described by the RAFT algorithm
+    /// Implements a Node as described by the RAFT algorithm.
+    /// The nodes aggregates a persisted state object that must be kept synchronized with a persistent storage.
+    /// The node also aggregates a <see cref="State"/> subclass instance to implement the active state rules.
     /// </summary>
     /// <typeparam name="T">Command type for the internal state machine.</typeparam>
     public sealed class Node<T> : IDisposable
@@ -166,7 +168,7 @@ namespace RAFTiNG
         /// </summary>
         public void Dispose()
         {
-            logger.Info("Stopping Node.");
+            this.logger.Info("Stopping Node.");
             if (this.currentState != null)
             {
                 this.currentState.ExitState();
@@ -223,17 +225,6 @@ namespace RAFTiNG
         internal void SendMessage(string dest, object message)
         {
             this.middleware.SendMessage(dest, message);
-        }
-
-        internal void SendToAll(object message)
-        {
-            this.logger.TraceFormat("Broadcast message to all: {0}", message);
-
-            // send request to all nodes
-            foreach (var otherNode in this.settings.Nodes)
-            {
-                this.middleware.SendMessage(otherNode, message);
-            }
         }
 
         internal void SendToOthers(object message)

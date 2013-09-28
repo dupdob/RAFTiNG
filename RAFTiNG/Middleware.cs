@@ -49,7 +49,7 @@ namespace RAFTiNG
                 }
                 catch (Exception e)
                 {
-                    logger.Error("Exception raised when processing message.", e);
+                    this.logger.Error("Exception raised when processing message.", e);
 
                     // exceptions must not cross middleware boundaries
                     return false;

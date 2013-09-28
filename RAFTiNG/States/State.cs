@@ -21,6 +21,10 @@ namespace RAFTiNG.States
 
     using RAFTiNG.Messages;
 
+    /// <summary>
+    /// Base class for the various node's states. Implement some default behavior.
+    /// </summary>
+    /// <typeparam name="T">Type for automaton commands.</typeparam>
     internal abstract class State<T>
     {
         protected readonly Node<T> Node;
@@ -82,6 +86,11 @@ namespace RAFTiNG.States
             this.done = true;
         }
 
+        internal virtual void ProcessAppendEntriesAck(AppendEntriesAck appendEntriesAck)
+        {
+            this.Logger.WarnFormat("Received ProcessAppendEntriesAck but I am not a leader, discarded: {0}", appendEntriesAck);
+        }
+
         protected void ResetTimeout(double randomPart = 0.0, double fixPart = 1.0)
         {
             if (this.HeartBeatTimer != null)
@@ -113,12 +122,6 @@ namespace RAFTiNG.States
                 this.HeartbeatTimeouted, null, timeout, Timeout.Infinite);
         }
 
-        internal virtual void ProcessAppendEntriesAck(AppendEntriesAck appendEntriesAck)
-        {
-            this.Logger.WarnFormat("Received ProcessAppendEntriesAck but I am not a leader, discarded: {0}", appendEntriesAck);
-        }
-
         protected abstract void HeartbeatTimeouted(object state);
-
     }
 }

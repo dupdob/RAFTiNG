@@ -160,7 +160,7 @@ namespace RAFTiNG.States
             public LogReplicationAgent(TimeSpan maxDelay, int logSize)
             {
                 this.maxDelay = maxDelay;
-                this.minSynchronizedIndex = logSize-1;
+                this.minSynchronizedIndex = logSize - 1;
                 this.lastSentMessageTime = DateTime.Now;
             }
 
@@ -202,6 +202,7 @@ namespace RAFTiNG.States
                 {
                     return null;
                 }
+
                 this.flyingTransaction = true;
                 var message = new AppendEntries<T>();
                 message.PrevLogIndex = this.minSynchronizedIndex;
@@ -213,6 +214,7 @@ namespace RAFTiNG.States
                 {
                     Console.WriteLine(e);
                 }
+
                 message.Entries = new LogEntry<T>[entriesToSend];
                 var offset = this.minSynchronizedIndex + 1;
                 for (var i = 0; i < entriesToSend; i++)

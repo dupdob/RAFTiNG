@@ -187,6 +187,7 @@ namespace RAFTiNG
                 // nothing to add
                 return;
             }
+
             prevLogIndex++;
             foreach (var logEntry in entries)
             {
