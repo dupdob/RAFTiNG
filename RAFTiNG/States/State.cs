@@ -113,11 +113,12 @@ namespace RAFTiNG.States
                 this.HeartbeatTimeouted, null, timeout, Timeout.Infinite);
         }
 
-        protected abstract void HeartbeatTimeouted(object state);
-
-        protected internal virtual void ProcessAppendEntriesAck(AppendEntriesAck appendEntriesAck)
+        internal virtual void ProcessAppendEntriesAck(AppendEntriesAck appendEntriesAck)
         {
             this.Logger.WarnFormat("Received ProcessAppendEntriesAck but I am not a leader, discarded: {0}", appendEntriesAck);
         }
+
+        protected abstract void HeartbeatTimeouted(object state);
+
     }
 }

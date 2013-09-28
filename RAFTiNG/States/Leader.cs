@@ -21,7 +21,7 @@ namespace RAFTiNG.States
 
     internal class Leader<T> : State<T>
     {
-        private readonly Dictionary<string, FollowerLogState> states = new Dictionary<string, FollowerLogState>();
+        private readonly Dictionary<string, LogReplicationAgent> states = new Dictionary<string, LogReplicationAgent>();
 
         public Leader(Node<T> node)
             : base(node)
@@ -33,7 +33,9 @@ namespace RAFTiNG.States
             // keep track of followers log state
             foreach (var otherNode in this.Node.Settings.OtherNodes())
             {
-                this.states[otherNode] = new FollowerLogState(this.Node.State.LastPersistedIndex, false);
+// ReSharper disable PossibleLossOfFraction
+                this.states[otherNode] = new LogReplicationAgent(TimeSpan.FromMilliseconds(this.Node.Settings.TimeoutInMs / 2), this.Node.State.LogEntries.Count);
+// ReSharper restore PossibleLossOfFraction
             }
 
             this.BroadcastHeartbeat();
@@ -95,50 +97,16 @@ namespace RAFTiNG.States
             }
         }
 
-        protected internal override void ProcessAppendEntriesAck(AppendEntriesAck appendEntriesAck)
+        internal override void ProcessAppendEntriesAck(AppendEntriesAck appendEntriesAck)
         {
-            int entriesToSend;
             var followerId = appendEntriesAck.NodeId;
             var followerLogState = this.states[followerId];
-            if (!appendEntriesAck.Success)
+            followerLogState.ProcessAppendEntriesAck(appendEntriesAck.Success);
+            var message = followerLogState.GetAppendEntries(this.Node.State.LogEntries);
+            if (message != null)
             {
-                followerLogState.LastSentIndex--;
-                var message = new AppendEntries<T>
-                {
-                    LeaderId = this.Node.Address,
-                    LeaderTerm = this.CurrentTerm,
-                    PrevLogIndex = followerLogState.LastSentIndex,
-                    PrevLogTerm = followerLogState.LastSentIndex == -1 ? 0 : this.Node.State.LogEntries[followerLogState.LastSentIndex].Term,
-                    CommitIndex = 0
-                };
-                this.Node.SendMessage(followerId, message);
-            }
-            else
-            {
-                entriesToSend = Math.Max(
-                    0,
-                    Math.Min(10, this.Node.State.LastPersistedIndex - followerLogState.LastSentIndex));
-                if (entriesToSend == 0)
-                {
-                    return;
-                }
-
-                var message = new AppendEntries<T>
-                {
-                    LeaderId = this.Node.Address,
-                    LeaderTerm = this.CurrentTerm,
-                    PrevLogIndex = followerLogState.LastSentIndex,
-                    PrevLogTerm = followerLogState.LastSentIndex == -1 ? 0 : this.Node.State.LogEntries[followerLogState.LastSentIndex].Term,
-                    Entries = new LogEntry<T>[entriesToSend],
-                    CommitIndex = 0
-                };
-
-                for (var i = 0; i < entriesToSend; i++)
-                {
-                    followerLogState.LastSentIndex++;
-                    message.Entries[i] = this.Node.State.LogEntries[followerLogState.LastSentIndex];
-                }
-
+                message.LeaderId = this.Node.Address;
+                message.LeaderTerm = this.CurrentTerm;
                 this.Node.SendMessage(followerId, message);
             }
         }
@@ -154,44 +122,125 @@ namespace RAFTiNG.States
             foreach (var entry in this.states)
             {
                 var followerLogState = entry.Value;
-
-                if (followerLogState.LastSentIndex == this.Node.State.LastPersistedIndex)
+                var message = followerLogState.GetAppendEntries(this.Node.State.LogEntries);
+                if (message != null)
                 {
-                    var folllowerId = entry.Key;
-                    var message = new AppendEntries<T>
-                    {
-                        LeaderId = this.Node.Address,
-                        LeaderTerm = this.CurrentTerm,
-                        PrevLogIndex = followerLogState.LastSentIndex,
-                        PrevLogTerm =
-                            followerLogState.LastSentIndex == -1
-                                ? 0
-                                : this.Node.State.LogEntries[
-                                    followerLogState.LastSentIndex].Term,
-                        CommitIndex = 0
-                    };
-                    this.Node.SendMessage(folllowerId, message);
+                    message.LeaderId = this.Node.Address;
+                    message.LeaderTerm = this.CurrentTerm;
+                    this.Node.SendMessage(entry.Key, message);
                 }
             }
 
             this.ResetTimeout(0, .5);
         }
 
-        private class FollowerLogState
+        private class LogReplicationAgent
         {
-            public int LastSentIndex { get; set; }
+            #region fields
 
-            public bool SynchroEstablished { get; set; }
+            private const int MaxBatch = 20;
+
+            private readonly TimeSpan maxDelay;
+
+            private int minSynchronizedIndex;
+
+            private int lastSentIndex = -1;
+
+            private bool flyingTransaction;
+
+            private DateTime lastSentMessageTime;
+
+            #endregion
 
             /// <summary>
-            /// Initializes a new instance of the <see cref="FollowerLogState"/> class.
+            /// Initializes a new instance of the <see cref="LogReplicationAgent" /> class.
             /// </summary>
-            /// <param name="lastSentIndex">Last index of the sent.</param>
-            /// <param name="synchroEstablished">if set to <c>true</c> [synchro established].</param>
-            public FollowerLogState(int lastSentIndex, bool synchroEstablished)
+            /// <param name="maxDelay">The max delay between two messages.</param>
+            /// <param name="logSize">Size of the log.</param>
+            public LogReplicationAgent(TimeSpan maxDelay, int logSize)
             {
-                this.LastSentIndex = lastSentIndex;
-                this.SynchroEstablished = synchroEstablished;
+                this.maxDelay = maxDelay;
+                this.minSynchronizedIndex = logSize-1;
+                this.lastSentMessageTime = DateTime.Now;
+            }
+
+            /// <summary>
+            /// Gets a value indicating whether the delay between messages elapsed.
+            /// </summary>
+            /// <value>
+            ///   <c>true</c> if delay elapsed; otherwise, <c>false</c>.
+            /// </value>
+            private bool DelayElapsed
+            {
+                get
+                {
+                    return (DateTime.Now - this.lastSentMessageTime) >= this.maxDelay;
+                }
+            }
+
+            /// <summary>
+            /// Gets the next <see cref="AppendEntries{T}"/> message to be sent.
+            /// </summary>
+            /// <param name="log">Entry log to keep in synchronization.
+            /// </param>
+            /// <returns>
+            /// The message to be send, null if none.
+            /// </returns>
+            public AppendEntries<T> GetAppendEntries(IList<LogEntry<T>> log)
+            {
+                // if we are waiting for an answer and delay is not elapsed
+                // we do nothing
+                if (this.flyingTransaction)
+                {
+                    return null;
+                }
+
+                var entriesToSend = Math.Max(
+                    0, Math.Min(MaxBatch, log.Count - this.minSynchronizedIndex - 1));
+
+                if (entriesToSend == 0 && !this.DelayElapsed)
+                {
+                    return null;
+                }
+                this.flyingTransaction = true;
+                var message = new AppendEntries<T>();
+                message.PrevLogIndex = this.minSynchronizedIndex;
+                try
+                {
+                    message.PrevLogTerm = this.minSynchronizedIndex < 0 ? -1 : log[this.minSynchronizedIndex].Term;
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
+                message.Entries = new LogEntry<T>[entriesToSend];
+                var offset = this.minSynchronizedIndex + 1;
+                for (var i = 0; i < entriesToSend; i++)
+                {
+                    message.Entries[i] = log[i + offset];
+                }
+
+                this.lastSentIndex = offset + entriesToSend - 1;
+                this.lastSentMessageTime = DateTime.Now;
+                return message;
+            }
+
+            /// <summary>
+            /// Processes the append entries acknowledgement message.
+            /// </summary>
+            /// <param name="success">if set to <c>true</c> [success].</param>
+            public void ProcessAppendEntriesAck(bool success)
+            {
+                this.flyingTransaction = false;
+                if (success)
+                {
+                    // if everything was ok
+                    this.minSynchronizedIndex = this.lastSentIndex;
+                    return;
+                }
+
+                // it fails, log is not synchronised
+                this.minSynchronizedIndex--;
             }
         }
     }

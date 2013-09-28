@@ -33,6 +33,8 @@ namespace RAFTiNG.States
 
         internal override void EnterState()
         {
+            // set timeout with 20% variability
+            // if no sign of leader before timeout, we assume an election is required
             this.ResetTimeout(.2);
         }
 

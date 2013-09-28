@@ -42,7 +42,7 @@ namespace RAFTiNG.Tests.Unit
 
                 using (var leader = new Node<string>(settings))
                 {
-                    int initIndex = -1;
+                    int initIndex = 0;
                     long term = 0;
                     settings.TimeoutInMs = 1;
                     leader.SetMiddleware(middleware);
@@ -55,9 +55,15 @@ namespace RAFTiNG.Tests.Unit
                         var timer = new Stopwatch();
                         leader.Initialize();
                         timer.Start();
-                        for (;;)
+                        var maxDelay = 3000;
+                        for (; ; )
                         {
-                            var millisecondsTimeout = Math.Max(3000 - (int)timer.ElapsedMilliseconds, 0);
+                            var millisecondsTimeout = Math.Max(maxDelay - (int)timer.ElapsedMilliseconds, 0);
+                            if (Debugger.IsAttached)
+                            {
+                                millisecondsTimeout = Timeout.Infinite;
+                            }
+
                             if (this.lastMessage == null && !Monitor.Wait(this.synchro, millisecondsTimeout))
                             {
                                 break;
@@ -81,6 +87,10 @@ namespace RAFTiNG.Tests.Unit
                                 {
                                     initIndex += (int)appendMessage.Entries.Count();
                                     middleware.SendMessage("1", new AppendEntriesAck("2", 0, true));
+                                    if (initIndex == leader.State.LogEntries.Count)
+                                    {
+                                        break;
+                                    }
                                 }
                             }
                             if (millisecondsTimeout == 0)
