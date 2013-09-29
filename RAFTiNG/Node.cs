@@ -35,6 +35,8 @@ namespace RAFTiNG
     {
         #region fields
 
+        private readonly Sequencer sequencer = new Sequencer();
+        
         private readonly ILog logger;
 
         private IMiddleware middleware;
@@ -160,7 +162,7 @@ namespace RAFTiNG
         /// <param name="command">The command.</param>
         public void AddEntry(T command)
         {
-            this.State.AddEntry(command);
+            this.sequencer.Sequence(() => this.State.AddEntry(command));
         }
 
         /// <summary>
@@ -176,6 +178,49 @@ namespace RAFTiNG
         }
 
         internal void SwitchTo(NodeStatus status)
+        {
+            this.Sequence(() => this.SequencedSwitch(status));
+        }
+
+        internal void SwitchToAndProcessMessage(NodeStatus status, object message)
+        {
+            this.Sequence(
+                () =>
+                    {
+                        this.SequencedSwitch(status);
+                        this.SequencedMessageReceived(message);
+                    });
+        }
+
+        internal long IncrementTerm()
+        {
+            var nextTerm = this.State.CurrentTerm + 1;
+            this.State.CurrentTerm = nextTerm;
+            return nextTerm;
+        }
+
+        internal void SendMessage(string dest, object message)
+        {
+            this.middleware.SendMessage(dest, message);
+        }
+
+        internal void SendToOthers(object message)
+        {
+            this.logger.TraceFormat("Broadcast message to all other nodes: {0}", message);
+
+            // send request to all nodes
+            foreach (var otherNode in this.settings.OtherNodes())
+            {
+                this.middleware.SendMessage(otherNode, message);
+            }
+        }
+
+        internal void Sequence(Action action)
+        {
+            this.sequencer.Sequence(action);
+        }
+
+        private void SequencedSwitch(NodeStatus status)
         {
             State<T> newState;
 
@@ -209,36 +254,12 @@ namespace RAFTiNG
             this.currentState.EnterState();
         }
 
-        internal void SwitchToAndProcessMessage(NodeStatus status, object message)
-        {
-            this.SwitchTo(status);
-            this.MessageReceived(message);
-        }
-
-        internal long IncrementTerm()
-        {
-            var nextTerm = this.State.CurrentTerm + 1;
-            this.State.CurrentTerm = nextTerm;
-            return nextTerm;
-        }
-
-        internal void SendMessage(string dest, object message)
-        {
-            this.middleware.SendMessage(dest, message);
-        }
-
-        internal void SendToOthers(object message)
-        {
-            this.logger.TraceFormat("Broadcast message to all other nodes: {0}", message);
-
-            // send request to all nodes
-            foreach (var otherNode in this.settings.OtherNodes())
-            {
-                this.middleware.SendMessage(otherNode, message);
-            }
-        }
-
         private void MessageReceived(object obj)
+        {
+            this.sequencer.Sequence(() => this.SequencedMessageReceived(obj));
+        }
+
+        private void SequencedMessageReceived(object obj)
         {
             this.MessagesCount++;
 

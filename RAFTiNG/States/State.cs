@@ -119,9 +119,14 @@ namespace RAFTiNG.States
             }
 
             this.HeartBeatTimer = new Timer(
-                this.HeartbeatTimeouted, null, timeout, Timeout.Infinite);
+                this.InternalTimerHandler, null, timeout, Timeout.Infinite);
         }
 
         protected abstract void HeartbeatTimeouted(object state);
+
+        private void InternalTimerHandler(object state)
+        {
+            this.Node.Sequence(() => this.HeartbeatTimeouted(state));
+        }
     }
 }

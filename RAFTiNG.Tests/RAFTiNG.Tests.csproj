@@ -70,6 +70,7 @@
     <Compile Include="Integration\RaftCommunicationSteps.cs" />
     <Compile Include="Unit\BasicNodeTest.cs" />
     <Compile Include="Unit\MiddlewareTests.cs" />
+    <Compile Include="Unit\Sequencer.cs" />
     <Compile Include="Unit\SequencerTest.cs" />
     <Compile Include="Unit\SettingsTest.cs" />
   </ItemGroup>
