@@ -43,33 +43,25 @@ namespace RAFTiNG.States
 
         internal override void ProcessVoteRequest(RequestVote request)
         {
-            GrantVote response;
-            if (request.Term <= this.CurrentTerm)
+            if (request.Term > this.CurrentTerm)
             {
-                // requesting a vote for a node that has less recent information
-                // we decline
-                this.Logger.TraceFormat(
-                    "Received a vote request from a node with a lower term. Message discarded {0}",
-                    request);
-                response = new GrantVote(false, this.Node.Address, this.CurrentTerm);
-            }
-            else
-            {
-                if (request.Term > this.CurrentTerm)
-                {
-                    this.Logger.DebugFormat(
-                        "Received a vote request from a node with a higher term ({0}'s term is {1}, our {2}). Stepping down.",
-                        request.CandidateId,
-                        request.Term,
-                        this.Node.State.CurrentTerm);
+                this.Logger.DebugFormat(
+                    "Received a vote request from a node with a higher term ({0}'s term is {1}, our {2}). Stepping down and process vote.",
+                    request.CandidateId,
+                    request.Term,
+                    this.Node.State.CurrentTerm);
 
-                    // we step down
-                    this.Node.SwitchToAndProcessMessage(NodeStatus.Follower, request);
-                    return;
-                }
-
-                response = new GrantVote(false, this.Node.Address, this.CurrentTerm);
+                // we step down
+                this.Node.SwitchToAndProcessMessage(NodeStatus.Follower, request);
+                return;
             }
+
+            // requesting a vote for a node that has less recent information
+            // we decline
+            this.Logger.TraceFormat(
+                "Received a vote request from a node with a lower term, we refuse (Msg : {0})",
+                request);
+            var response = new GrantVote(false, this.Node.Address, this.CurrentTerm);
 
             // send back the response
             this.Node.SendMessage(request.CandidateId, response);
@@ -88,13 +80,12 @@ namespace RAFTiNG.States
             {
                 Logger.InfoFormat("Received AppendEntries from a probable leader, stepping down.");
                 this.Node.SwitchToAndProcessMessage(NodeStatus.Follower, appendEntries);
+                return;
             }
-            else
-            {
-                Logger.DebugFormat("Received AppendEntries from an invalid leader, refusing.");
-                var reply = new AppendEntriesAck(this.Node.Address, this.CurrentTerm, false);
-                this.Node.SendMessage(appendEntries.LeaderId, reply);
-            }
+
+            this.Logger.DebugFormat("Received AppendEntries from an invalid leader, refusing.");
+            var reply = new AppendEntriesAck(this.Node.Address, this.CurrentTerm, false);
+            this.Node.SendMessage(appendEntries.LeaderId, reply);
         }
 
         internal override void ProcessAppendEntriesAck(AppendEntriesAck appendEntriesAck)
@@ -204,8 +195,7 @@ namespace RAFTiNG.States
                 }
 
                 this.flyingTransaction = true;
-                var message = new AppendEntries<T>();
-                message.PrevLogIndex = this.minSynchronizedIndex;
+                var message = new AppendEntries<T> { PrevLogIndex = this.minSynchronizedIndex };
                 try
                 {
                     message.PrevLogTerm = this.minSynchronizedIndex < 0 ? -1 : log[this.minSynchronizedIndex].Term;
