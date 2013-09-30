@@ -42,66 +42,104 @@ namespace RAFTiNG.Tests.Unit
 
                 using (var leader = new Node<string>(settings))
                 {
-                    int initIndex = 0;
                     long term = 0;
                     settings.TimeoutInMs = 1;
                     leader.SetMiddleware(middleware);
                     // we inject
-                    leader.State.AppendEntries(-1, new LogEntry<string>[]{new LogEntry<string>("one"), new LogEntry<string>("two"), });
+                    leader.State.AppendEntries(-1, new[]{new LogEntry<string>("one"), new LogEntry<string>("two"), });
 
                     middleware.RegisterEndPoint("2", OnMessate);
                     lock (synchro)
                     {
-                        var timer = new Stopwatch();
                         leader.Initialize();
-                        timer.Start();
-                        var maxDelay = 3000;
-                        for (; ; )
-                        {
-                            var millisecondsTimeout = Math.Max(maxDelay - (int)timer.ElapsedMilliseconds, 0);
-                            if (Debugger.IsAttached)
-                            {
-                                millisecondsTimeout = Timeout.Infinite;
-                            }
-
-                            if (this.lastMessage == null && !Monitor.Wait(this.synchro, millisecondsTimeout))
-                            {
-                                break;
-                            }
-                            var message = this.lastMessage;
-                            this.lastMessage = null;
-                            if (message is RequestVote)
-                            {
-                                // we vote for the leader
-                                middleware.SendMessage("1", new GrantVote(true, "2", 0));
-                            }
-                            if (message is AppendEntries<string>)
-                            {
-                                var appendMessage = message as AppendEntries<string>;
-                                term = appendMessage.LeaderTerm;
-                                if (appendMessage.PrevLogIndex != initIndex)
-                                {
-                                    middleware.SendMessage("1", new AppendEntriesAck("2", 0, false));
-                                }
-                                else
-                                {
-                                    initIndex += (int)appendMessage.Entries.Count();
-                                    middleware.SendMessage("1", new AppendEntriesAck("2", 0, true));
-                                    if (initIndex == leader.State.LogEntries.Count)
-                                    {
-                                        break;
-                                    }
-                                }
-                            }
-                            if (millisecondsTimeout == 0)
-                            {
-                                break;
-                            }
-                        }
+                        const int MaxDelay = 3000;
+                        var initIndex = this.WaitForLogSynchro(MaxDelay, middleware, leader);
                         Check.That(initIndex).IsEqualTo(1);
                     }
                 }
             }
+        }
+
+        [Test]
+        public void CommitIndexIsProperlyEstablished()
+        {
+            using (Helpers.InitLog4Net())
+            {
+                var middleware = new Middleware();
+                var settings = Helpers.BuildNodeSettings("1", new[] { "1", "2" });
+
+                using (var leader = new Node<string>(settings))
+                {
+                    long term = 0;
+                    settings.TimeoutInMs = 1;
+                    leader.SetMiddleware(middleware);
+                    // we inject
+                    leader.State.AppendEntries(-1, new[] { new LogEntry<string>("one"), new LogEntry<string>("two"), new LogEntry<string>("3") });
+
+                    middleware.RegisterEndPoint("2", OnMessate);
+                    lock (synchro)
+                    {
+                        leader.Initialize();
+                        const int MaxDelay = 3000;
+                        var initIndex = this.WaitForLogSynchro(MaxDelay, middleware, leader);
+                        Check.That(initIndex).IsEqualTo(2);
+                        // let sometime for the leader to commit entries
+                        Thread.Sleep(50);
+                        Check.That(leader.State.CommitIndex).IsEqualTo(2);
+                    }
+                }
+            }
+        }
+        
+        private int WaitForLogSynchro(int MaxDelay, Middleware middleware, Node<string> leader)
+        {
+            long term;
+            var initIndex = 0;
+            var timer = new Stopwatch();
+            timer.Start();
+            for (;;)
+            {
+                var millisecondsTimeout = Math.Max(MaxDelay - (int)timer.ElapsedMilliseconds, 0);
+                if (Debugger.IsAttached)
+                {
+                    millisecondsTimeout = Timeout.Infinite;
+                }
+
+                if (this.lastMessage == null && !Monitor.Wait(this.synchro, millisecondsTimeout))
+                {
+                    break;
+                }
+                var message = this.lastMessage;
+                this.lastMessage = null;
+                if (message is RequestVote)
+                {
+                    // we vote for the leader
+                    middleware.SendMessage("1", new GrantVote(true, "2", 0));
+                }
+                if (message is AppendEntries<string>)
+                {
+                    var appendMessage = message as AppendEntries<string>;
+                    term = appendMessage.LeaderTerm;
+                    if (appendMessage.PrevLogIndex != initIndex)
+                    {
+                        middleware.SendMessage("1", new AppendEntriesAck("2", 0, false));
+                    }
+                    else
+                    {
+                        initIndex += (int)appendMessage.Entries.Count();
+                        middleware.SendMessage("1", new AppendEntriesAck("2", 0, true));
+                        if (initIndex == leader.State.LogEntries.Count)
+                        {
+                            break;
+                        }
+                    }
+                }
+                if (millisecondsTimeout == 0)
+                {
+                    break;
+                }
+            }
+            return initIndex;
         }
 
         private void OnMessate(object obj)

@@ -18,6 +18,7 @@
 
 namespace RAFTiNG
 {
+    using System;
     using System.Collections.Generic;
 
     /// <summary>
@@ -99,6 +100,14 @@ namespace RAFTiNG
         /// Gets the persisted command.
         /// </summary>
         public IList<LogEntry<T>> LogEntries { get; private set; }
+
+        /// <summary>
+        /// Gets or sets the index of the commit.
+        /// </summary>
+        /// <value>
+        /// The index of the commit.
+        /// </value>
+        public int CommitIndex { get; set; }
 
         /// <summary>
         /// Adds the entry.

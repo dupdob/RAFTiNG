@@ -29,7 +29,7 @@ namespace RAFTiNG.Tests.Unit
         {
             var synchro = new object();
             var sequencer = new Sequencer();
-            bool failed = false;
+            var failed = false;
 
             for (var i = 0; i < 10000; i++)
             {

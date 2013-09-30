@@ -16,6 +16,7 @@ namespace RAFTiNG.States
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
 
     using RAFTiNG.Messages;
 
@@ -41,6 +42,7 @@ namespace RAFTiNG.States
             this.BroadcastHeartbeat();
         }
 
+        // deal with vote request
         internal override void ProcessVoteRequest(RequestVote request)
         {
             if (request.Term > this.CurrentTerm)
@@ -67,6 +69,7 @@ namespace RAFTiNG.States
             this.Node.SendMessage(request.CandidateId, response);
         }
 
+        // process vote
         internal override void ProcessVote(GrantVote vote)
         {
             this.Logger.TraceFormat(
@@ -74,6 +77,7 @@ namespace RAFTiNG.States
                 vote);
         }
 
+        // process appendentries
         internal override void ProcessAppendEntries(AppendEntries<T> appendEntries)
         {
             if (appendEntries.LeaderTerm >= this.CurrentTerm)
@@ -88,18 +92,27 @@ namespace RAFTiNG.States
             this.Node.SendMessage(appendEntries.LeaderId, reply);
         }
 
+        // processes ack for appenentries
+        // keeps track of other nodes
+        // update commit index
         internal override void ProcessAppendEntriesAck(AppendEntriesAck appendEntriesAck)
         {
             var followerId = appendEntriesAck.NodeId;
             var followerLogState = this.states[followerId];
             followerLogState.ProcessAppendEntriesAck(appendEntriesAck.Success);
             var message = followerLogState.GetAppendEntries(this.Node.State.LogEntries);
-            if (message != null)
+            if (appendEntriesAck.Success)
             {
-                message.LeaderId = this.Node.Address;
-                message.LeaderTerm = this.CurrentTerm;
-                this.Node.SendMessage(followerId, message);
+                UpdateCommitIndex();                
             }
+
+            if (message == null)
+            {
+                return;
+            }
+            message.LeaderId = this.Node.Address;
+            message.LeaderTerm = this.CurrentTerm;
+            this.Node.SendMessage(followerId, message);
         }
 
         protected override void HeartbeatTimeouted(object state)
@@ -107,6 +120,16 @@ namespace RAFTiNG.States
             // send keep alive
             this.BroadcastHeartbeat();
         }
+
+        // compute the new commiindex
+        private void UpdateCommitIndex()
+        {
+            var ordered = this.states.Values.Select((state) => state.MinSynchronizedIndex).OrderBy((value) => value);
+            var index = this.Node.Settings.Nodes.Length - this.Node.Settings.Majority + 1;
+            this.Node.State.CommitIndex = ordered.ElementAt(index);
+            Logger.TraceFormat("Commit index is now {0}.", this.Node.State.CommitIndex);
+        }
+
 
         private void BroadcastHeartbeat()
         {
@@ -134,6 +157,14 @@ namespace RAFTiNG.States
             private readonly TimeSpan maxDelay;
 
             private int minSynchronizedIndex;
+
+            public int MinSynchronizedIndex
+            {
+                get
+                {
+                    return this.minSynchronizedIndex;
+                }
+            }
 
             private int lastSentIndex = -1;
 
