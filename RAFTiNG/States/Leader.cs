@@ -103,13 +103,14 @@ namespace RAFTiNG.States
             var message = followerLogState.GetAppendEntries(this.Node.State.LogEntries);
             if (appendEntriesAck.Success)
             {
-                UpdateCommitIndex();                
+                this.UpdateCommitIndex();                
             }
 
             if (message == null)
             {
                 return;
             }
+
             message.LeaderId = this.Node.Address;
             message.LeaderTerm = this.CurrentTerm;
             this.Node.SendMessage(followerId, message);
@@ -124,12 +125,11 @@ namespace RAFTiNG.States
         // compute the new commiindex
         private void UpdateCommitIndex()
         {
-            var ordered = this.states.Values.Select((state) => state.MinSynchronizedIndex).OrderBy((value) => value);
+            var ordered = this.states.Values.Select(state => state.MinSynchronizedIndex).OrderBy(value => value);
             var index = this.Node.Settings.Nodes.Length - this.Node.Settings.Majority + 1;
             this.Node.State.CommitIndex = ordered.ElementAt(index);
             Logger.TraceFormat("Commit index is now {0}.", this.Node.State.CommitIndex);
         }
-
 
         private void BroadcastHeartbeat()
         {
@@ -158,14 +158,6 @@ namespace RAFTiNG.States
 
             private int minSynchronizedIndex;
 
-            public int MinSynchronizedIndex
-            {
-                get
-                {
-                    return this.minSynchronizedIndex;
-                }
-            }
-
             private int lastSentIndex = -1;
 
             private bool flyingTransaction;
@@ -184,6 +176,20 @@ namespace RAFTiNG.States
                 this.maxDelay = maxDelay;
                 this.minSynchronizedIndex = logSize - 1;
                 this.lastSentMessageTime = DateTime.Now;
+            }
+
+            /// <summary>
+            /// Gets the index of the min synchronized.
+            /// </summary>
+            /// <value>
+            /// The index of the min synchronized.
+            /// </value>
+            public int MinSynchronizedIndex
+            {
+                get
+                {
+                    return this.minSynchronizedIndex;
+                }
             }
 
             /// <summary>
