@@ -43,8 +43,10 @@ namespace RAFTiNG.States
             // increase term
             var nextTerm = this.Node.IncrementTerm();
 
-            var candidateId = this.Node.Address;
+            var candidateId = this.Node.Id;
             this.Node.State.VotedFor = candidateId;
+            this.Node.LeaderId = string.Empty;
+            // vote for self!
             this.ProcessVote(new GrantVote(true, candidateId, nextTerm));
             
             // send vote request
@@ -58,7 +60,7 @@ namespace RAFTiNG.States
         {
             bool vote;
             var currentTerm = this.CurrentTerm;
-            if (request.Term <= currentTerm && request.CandidateId != this.Node.Address)
+            if (request.Term <= currentTerm && request.CandidateId != this.Node.Id)
             {
                 // requesting a vote for a node that has less recent information
                 // we decline
@@ -109,7 +111,7 @@ namespace RAFTiNG.States
             }
 
             // send back the response
-            this.Node.SendMessage(request.CandidateId, new GrantVote(vote, this.Node.Address, currentTerm));
+            this.Node.SendMessage(request.CandidateId, new GrantVote(vote, this.Node.Id, currentTerm));
         }
 
         internal override void ProcessVote(GrantVote vote)
@@ -158,7 +160,7 @@ namespace RAFTiNG.States
             else
             {
                 Logger.DebugFormat("Received AppendEntries from an invalid leader, refusing.");
-                var reply = new AppendEntriesAck(this.Node.Address, this.CurrentTerm, false);
+                var reply = new AppendEntriesAck(this.Node.Id, this.CurrentTerm, false);
                 this.Node.SendMessage(appendEntries.LeaderId, reply);
             }
         }

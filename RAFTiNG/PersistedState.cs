@@ -18,7 +18,6 @@
 
 namespace RAFTiNG
 {
-    using System;
     using System.Collections.Generic;
 
     /// <summary>
@@ -40,6 +39,8 @@ namespace RAFTiNG
         {
             this.LogEntries = new List<LogEntry<T>>();
         }
+
+        #region properties
 
         /// <summary>
         /// Gets or sets the last known term.
@@ -73,7 +74,9 @@ namespace RAFTiNG
         {
             get
             {
-                return this.LogEntries.Count > 0 ? this.LogEntries[this.LogEntries.Count - 1].Term : 0;
+                return this.LogEntries.Count > 0
+                           ? this.LogEntries[this.LogEntries.Count - 1].Term
+                           : 0;
             }
         }
 
@@ -108,6 +111,8 @@ namespace RAFTiNG
         /// The index of the commit.
         /// </value>
         public int CommitIndex { get; set; }
+
+        #endregion
 
         /// <summary>
         /// Adds the entry.

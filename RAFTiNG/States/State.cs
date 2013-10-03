@@ -27,11 +27,15 @@ namespace RAFTiNG.States
     /// <typeparam name="T">Type for automaton commands.</typeparam>
     internal abstract class State<T>
     {
+        #region fields
+
         protected readonly Node<T> Node;
 
         private static Random seed = new Random();
 
         private bool done;
+
+        #endregion
 
         /// <summary>
         /// Initializes a new instance of the <see cref="State{T}"/> class.
@@ -41,6 +45,8 @@ namespace RAFTiNG.States
         {
             this.Node = node;
         }
+
+        #region properyies
 
         protected bool Done
         {
@@ -68,6 +74,8 @@ namespace RAFTiNG.States
 
         private Timer HeartBeatTimer { get; set; }
 
+        #endregion
+
         internal abstract void EnterState();
 
         internal abstract void ProcessVoteRequest(RequestVote request);
@@ -93,6 +101,11 @@ namespace RAFTiNG.States
 
         protected void ResetTimeout(double randomPart = 0.0, double fixPart = 1.0)
         {
+            if (done)
+            {
+                return;
+            }
+
             if (this.HeartBeatTimer != null)
             {
                 this.HeartBeatTimer.Dispose();                

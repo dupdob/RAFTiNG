@@ -55,12 +55,12 @@ namespace RAFTiNG
         /// <param name="settings">The node settings.</param>
         public Node(NodeSettings settings)
         {
-            this.Address = settings.NodeId;
+            this.Id = settings.NodeId;
             this.settings = settings;
 
             this.Status = NodeStatus.Initializing;
             this.State = new PersistedState<T>();
-            this.logger = LogManager.GetLogger(string.Format("Node[{0}]", this.Address));
+            this.logger = LogManager.GetLogger(string.Format("Node[{0}]", this.Id));
         }
 
         #endregion
@@ -78,7 +78,7 @@ namespace RAFTiNG
         /// <value>
         /// The address.
         /// </value>
-        public string Address { get; private set; }
+        public string Id { get; private set; }
 
         /// <summary>
         /// Gets the messages count.
@@ -92,6 +92,8 @@ namespace RAFTiNG
         /// Gets the persisted state.
         /// </summary>
         public PersistedState<T> State { get; private set; }
+
+        internal string LeaderId { get; set; }
 
         internal ILog Logger
         {
@@ -132,8 +134,8 @@ namespace RAFTiNG
                 throw new ArgumentNullException("test");
             }
 
-            this.logger.InfoFormat("Middleware registration to address {0}", this.Address);
-            test.RegisterEndPoint(this.Address, this.MessageReceived);
+            this.logger.InfoFormat("Middleware registration to address {0}", this.Id);
+            test.RegisterEndPoint(this.Id, this.MessageReceived);
             this.middleware = test;
         }
 

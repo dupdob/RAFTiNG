@@ -50,7 +50,7 @@ namespace RAFTiNG.Tests
         [When(@"I send a message to Node (.*)")]
         public void WhenISendAMessageTo(int p0)
         {
-            this.middleware.SendMessage(this.testedNodes[p0 - 1].Address, "message");
+            this.middleware.SendMessage(this.testedNodes[p0 - 1].Id, "message");
         }
 
         [Then(@"Node (.*) has received my message")]

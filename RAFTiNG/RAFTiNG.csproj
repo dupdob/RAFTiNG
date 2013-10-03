@@ -49,6 +49,7 @@
     <Compile Include="Messages\AppendEntries.cs" />
     <Compile Include="Messages\AppendEntriesAck.cs" />
     <Compile Include="Messages\GrantVote.cs" />
+    <Compile Include="Messages\SendCommand.cs" />
     <Compile Include="Middleware.cs" />
     <Compile Include="Node.cs" />
     <Compile Include="NodeSettings.cs" />

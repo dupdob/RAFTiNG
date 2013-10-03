@@ -92,7 +92,7 @@ namespace RAFTiNG.States
             }
 
             // send back the response
-            this.Node.SendMessage(request.CandidateId, new GrantVote(vote, this.Node.Address, currentTerm));
+            this.Node.SendMessage(request.CandidateId, new GrantVote(vote, this.Node.Id, currentTerm));
         }
 
         internal override void ProcessVote(GrantVote vote)
@@ -106,6 +106,7 @@ namespace RAFTiNG.States
             bool result;
             if (appendEntries.LeaderTerm >= this.CurrentTerm)
             {
+                this.Node.LeaderId = appendEntries.LeaderId;
                 if (this.Node.State.EntryMatches(
                     appendEntries.PrevLogIndex, appendEntries.PrevLogTerm))
                 {
@@ -127,7 +128,7 @@ namespace RAFTiNG.States
                 result = false;
             }
 
-            var reply = new AppendEntriesAck(this.Node.Address, this.CurrentTerm, result);
+            var reply = new AppendEntriesAck(this.Node.Id, this.CurrentTerm, result);
             this.Node.SendMessage(appendEntries.LeaderId, reply);
             this.ResetTimeout(.2);
         }

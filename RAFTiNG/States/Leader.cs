@@ -31,6 +31,8 @@ namespace RAFTiNG.States
 
         internal override void EnterState()
         {
+            this.Node.LeaderId = this.Node.Id;
+            
             // keep track of followers log state
             foreach (var otherNode in this.Node.Settings.OtherNodes())
             {
@@ -63,7 +65,7 @@ namespace RAFTiNG.States
             this.Logger.TraceFormat(
                 "Received a vote request from a node with a lower term, we refuse (Msg : {0})",
                 request);
-            var response = new GrantVote(false, this.Node.Address, this.CurrentTerm);
+            var response = new GrantVote(false, this.Node.Id, this.CurrentTerm);
 
             // send back the response
             this.Node.SendMessage(request.CandidateId, response);
@@ -88,7 +90,7 @@ namespace RAFTiNG.States
             }
 
             this.Logger.DebugFormat("Received AppendEntries from an invalid leader, refusing.");
-            var reply = new AppendEntriesAck(this.Node.Address, this.CurrentTerm, false);
+            var reply = new AppendEntriesAck(this.Node.Id, this.CurrentTerm, false);
             this.Node.SendMessage(appendEntries.LeaderId, reply);
         }
 
@@ -97,6 +99,7 @@ namespace RAFTiNG.States
         // update commit index
         internal override void ProcessAppendEntriesAck(AppendEntriesAck appendEntriesAck)
         {
+            this.Logger.TraceFormat("Received AppendEntriesAck ({0}).", appendEntriesAck);
             var followerId = appendEntriesAck.NodeId;
             var followerLogState = this.states[followerId];
             followerLogState.ProcessAppendEntriesAck(appendEntriesAck.Success);
@@ -111,7 +114,7 @@ namespace RAFTiNG.States
                 return;
             }
 
-            message.LeaderId = this.Node.Address;
+            message.LeaderId = this.Node.Id;
             message.LeaderTerm = this.CurrentTerm;
             this.Node.SendMessage(followerId, message);
         }
@@ -127,8 +130,12 @@ namespace RAFTiNG.States
         {
             var ordered = this.states.Values.Select(state => state.MinSynchronizedIndex).OrderBy(value => value);
             var index = this.Node.Settings.Nodes.Length - this.Node.Settings.Majority + 1;
-            this.Node.State.CommitIndex = ordered.ElementAt(index);
-            Logger.TraceFormat("Commit index is now {0}.", this.Node.State.CommitIndex);
+            var commitIndex = ordered.ElementAt(index);
+            if (this.Node.State.CommitIndex < commitIndex)
+            {
+                this.Node.State.CommitIndex = commitIndex;
+                Logger.TraceFormat("Commit index is now {0}.", this.Node.State.CommitIndex);
+            }
         }
 
         private void BroadcastHeartbeat()
@@ -139,7 +146,7 @@ namespace RAFTiNG.States
                 var message = followerLogState.GetAppendEntries(this.Node.State.LogEntries);
                 if (message != null)
                 {
-                    message.LeaderId = this.Node.Address;
+                    message.LeaderId = this.Node.Id;
                     message.LeaderTerm = this.CurrentTerm;
                     this.Node.SendMessage(entry.Key, message);
                 }
