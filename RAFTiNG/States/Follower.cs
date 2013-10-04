@@ -107,6 +107,12 @@ namespace RAFTiNG.States
             if (appendEntries.LeaderTerm >= this.CurrentTerm)
             {
                 this.Node.LeaderId = appendEntries.LeaderId;
+                if (appendEntries.LeaderTerm > this.CurrentTerm)
+                {
+                    Logger.TraceFormat("Upgrade our term to {0}.", this.CurrentTerm);
+                    this.Node.State.CurrentTerm = appendEntries.LeaderTerm;
+                }
+
                 if (this.Node.State.EntryMatches(
                     appendEntries.PrevLogIndex, appendEntries.PrevLogTerm))
                 {
@@ -117,14 +123,14 @@ namespace RAFTiNG.States
                 else
                 {
                     // leader is older than us or log does not match
-                    Logger.DebugFormat("Reject an AppendEntries that does not match our log.");
+                    Logger.DebugFormat("Reject an AppendEntries that does not match our log ({0}).", appendEntries);
                     result = false;
                 }
             }
             else
             {
                 // leader is older than us or log does not match
-                Logger.DebugFormat("Reject an AppendEntries from an invalid leader.");
+                Logger.DebugFormat("Reject an AppendEntries from an invalid leader ({0}).", appendEntries);
                 result = false;
             }
 

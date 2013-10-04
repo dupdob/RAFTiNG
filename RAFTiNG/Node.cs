@@ -176,22 +176,19 @@ namespace RAFTiNG
             if (this.currentState != null)
             {
                 this.currentState.ExitState();
+                this.currentState = null;
             }
         }
 
         internal void SwitchTo(NodeStatus status)
         {
-            this.Sequence(() => this.SequencedSwitch(status));
+            this.SequencedSwitch(status);
         }
 
         internal void SwitchToAndProcessMessage(NodeStatus status, object message)
         {
-            this.Sequence(
-                () =>
-                    {
-                        this.SequencedSwitch(status);
-                        this.SequencedMessageReceived(message);
-                    });
+            this.SequencedSwitch(status);
+            this.SequencedMessageReceived(message);
         }
 
         internal long IncrementTerm()
@@ -263,6 +260,12 @@ namespace RAFTiNG
 
         private void SequencedMessageReceived(object obj)
         {
+            if (this.currentState == null)
+            {
+                this.Logger.DebugFormat("Node is not active, discarding message ({0}).", obj);
+                return;
+            }
+
             this.MessagesCount++;
 
             var requestVote = obj as RequestVote;

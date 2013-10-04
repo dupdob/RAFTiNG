@@ -28,20 +28,47 @@ namespace RAFTiNG.Tests
     using NFluent;
 
     using TechTalk.SpecFlow;
-
-    [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1600:ElementsMustBeDocumented",
-        Justification = "Reviewed. Suppression is OK here.")][Binding]
-    public class BasicRaftSteps: IDisposable
+    
+    public class RaftingInfra: IDisposable
     {
-        private Middleware middleware;
+        public Middleware Middleware { get; set; }
+
+        public List<Node<string>> Nodes { get; set; }
 
         private IDisposable logHandle;
 
-        private List<Node<string>> nodes;
-
-        public BasicRaftSteps()
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RaftingInfra"/> class.
+        /// </summary>
+        public RaftingInfra()
         {
             logHandle = Helpers.InitLog4Net();
+        }
+
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public void Dispose()
+        {
+            foreach (var node in this.Nodes)
+            {
+                node.Dispose();
+            }
+            this.Nodes.Clear();
+            logHandle.Dispose();
+        }
+    }
+
+    [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1600:ElementsMustBeDocumented",
+        Justification = "Reviewed. Suppression is OK here.")][Binding]
+    public class BasicRaftSteps
+    {
+
+        private RaftingInfra infra;
+        
+        public BasicRaftSteps(RaftingInfra infra)
+        {
+            this.infra = infra;
         }
 
         [Given(@"I have deployed (.*) instances")]
@@ -53,8 +80,8 @@ namespace RAFTiNG.Tests
                 names.Add(i.ToString(CultureInfo.InvariantCulture));
             }
 
-            this.middleware = new Middleware();
-            this.nodes = new List<Node<string>>(p0);
+            this.infra.Middleware = new Middleware();
+            this.infra.Nodes = new List<Node<string>>(p0);
             var settings = new NodeSettings();
             settings.Nodes = names.ToArray();
             settings.TimeoutInMs = 100;
@@ -63,23 +90,41 @@ namespace RAFTiNG.Tests
             {
                 settings.NodeId = names[i];
                 var node = new Node<string>(settings);
-                node.SetMiddleware(this.middleware);
-                this.nodes.Add(node);
+                node.SetMiddleware(this.infra.Middleware);
+                this.infra.Nodes.Add(node);
             }
         }
         
         [When(@"I start instances (.*), (.*) and (.*)")]
         public void WhenIStartInstancesAnd(int p0, int p1, int p2)
         {
-            this.nodes[p0 - 1].Initialize();
-            this.nodes[p1 - 1].Initialize();
-            this.nodes[p2 - 1].Initialize();
+            if (p0>0)
+            {
+                this.infra.Nodes[p0 - 1].Initialize();
+            }
+            if (p1 == 0)
+            {
+                return;
+            }
+            this.infra.Nodes[p1 - 1].Initialize();
+            if (p2 == 0)
+                return;
+            this.infra.Nodes[p2 - 1].Initialize();
+        }
+
+        [When(@"I start all instances")]
+        public void WhenIStartAllInstances()
+        {
+            foreach (var node in infra.Nodes)
+            {
+                node.Initialize();
+            }
         }
 
         [Then(@"there is (.*) leader")]
         public void ThenThereIsLeader(int p0)
         {
-            var leaders = this.nodes.Count(node => node.Status == NodeStatus.Leader);
+            var leaders = this.infra.Nodes.Count(node => node.Status == NodeStatus.Leader);
 
             Check.That(leaders).IsEqualTo(p0);
         }
@@ -88,18 +133,6 @@ namespace RAFTiNG.Tests
         public void WhenIWaitSeconde(int p0)
         {
             Thread.Sleep(p0 * 1000);
-        }
-
-        /// <summary>
-        /// Exécute les tâches définies par l'application associées à la libération ou à la redéfinition des ressources non managées.
-        /// </summary>
-        public void Dispose()
-        {
-            foreach (var node in nodes)
-            {
-                node.Dispose();
-            }
-            logHandle.Dispose();
         }
     }
 }

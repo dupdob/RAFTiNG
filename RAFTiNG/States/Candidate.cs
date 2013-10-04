@@ -20,6 +20,7 @@ namespace RAFTiNG.States
 {
     using System.Collections.Generic;
     using System.Linq;
+    using System.Text;
 
     using RAFTiNG.Messages;
 
@@ -46,6 +47,7 @@ namespace RAFTiNG.States
             var candidateId = this.Node.Id;
             this.Node.State.VotedFor = candidateId;
             this.Node.LeaderId = string.Empty;
+
             // vote for self!
             this.ProcessVote(new GrantVote(true, candidateId, nextTerm));
             
@@ -145,8 +147,14 @@ namespace RAFTiNG.States
                 return;
             }
 
+            var nodes = new StringBuilder();
+            foreach (var key in this.voteReceived.Keys)
+            {
+                nodes.AppendFormat("{0},", key);
+            }
+            
             // we have a majority
-            this.Logger.DebugFormat("I have been elected as new leader.");
+            this.Logger.DebugFormat("I have been elected as new leader by {0}.", nodes);
             this.Node.SwitchTo(NodeStatus.Leader);
         }
 
@@ -154,7 +162,7 @@ namespace RAFTiNG.States
         {
             if (appendEntries.LeaderTerm >= this.CurrentTerm)
             {
-                Logger.InfoFormat("Received AppendEntries from a probable leader, stepping down.");
+                Logger.InfoFormat("Received AppendEntries from a probable leader, stepping down ({0}).", appendEntries);
                 this.Node.SwitchToAndProcessMessage(NodeStatus.Follower, appendEntries);
             }
             else

@@ -30,7 +30,7 @@ namespace RAFTiNG
     {
         private readonly Dictionary<string, Action<object>> endpoints = new Dictionary<string, Action<object>>();
 
-        private ILog logger = LogManager.GetLogger("MockMiddleware");
+        private readonly ILog logger = LogManager.GetLogger("MockMiddleware");
 
         /// <summary>
         /// Sends a message to a specific address.

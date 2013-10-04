@@ -18,6 +18,8 @@ namespace RAFTiNG.States
     using System.Collections.Generic;
     using System.Linq;
 
+    using log4net;
+
     using RAFTiNG.Messages;
 
     internal class Leader<T> : State<T>
@@ -36,9 +38,14 @@ namespace RAFTiNG.States
             // keep track of followers log state
             foreach (var otherNode in this.Node.Settings.OtherNodes())
             {
-// ReSharper disable PossibleLossOfFraction
-                this.states[otherNode] = new LogReplicationAgent(TimeSpan.FromMilliseconds(this.Node.Settings.TimeoutInMs / 2), this.Node.State.LogEntries.Count);
-// ReSharper restore PossibleLossOfFraction
+                // ReSharper disable PossibleLossOfFraction
+                this.states[otherNode] =
+                    new LogReplicationAgent(
+                        TimeSpan.FromMilliseconds(this.Node.Settings.TimeoutInMs / 2),
+                        this.Node.State.LogEntries.Count,
+                        otherNode,
+                        this.Logger);
+                // ReSharper restore PossibleLossOfFraction
             }
 
             this.BroadcastHeartbeat();
@@ -89,7 +96,7 @@ namespace RAFTiNG.States
                 return;
             }
 
-            this.Logger.DebugFormat("Received AppendEntries from an invalid leader, refusing.");
+            this.Logger.DebugFormat("Received AppendEntries from an invalid leader, refusing ({0}).", appendEntries);
             var reply = new AppendEntriesAck(this.Node.Id, this.CurrentTerm, false);
             this.Node.SendMessage(appendEntries.LeaderId, reply);
         }
@@ -100,6 +107,13 @@ namespace RAFTiNG.States
         internal override void ProcessAppendEntriesAck(AppendEntriesAck appendEntriesAck)
         {
             this.Logger.TraceFormat("Received AppendEntriesAck ({0}).", appendEntriesAck);
+            if (appendEntriesAck.Term > this.CurrentTerm)
+            {
+                this.Logger.DebugFormat("Term is higher, I resign.");
+                this.Node.SwitchTo(NodeStatus.Follower);
+                return;
+            }
+
             var followerId = appendEntriesAck.NodeId;
             var followerLogState = this.states[followerId];
             followerLogState.ProcessAppendEntriesAck(appendEntriesAck.Success);
@@ -163,6 +177,8 @@ namespace RAFTiNG.States
 
             private readonly TimeSpan maxDelay;
 
+            private readonly ILog logger;
+
             private int minSynchronizedIndex;
 
             private int lastSentIndex = -1;
@@ -174,15 +190,26 @@ namespace RAFTiNG.States
             #endregion
 
             /// <summary>
-            /// Initializes a new instance of the <see cref="LogReplicationAgent" /> class.
+            /// Initializes a new instance of the <see cref="LogReplicationAgent"/> class.
             /// </summary>
-            /// <param name="maxDelay">The max delay between two messages.</param>
-            /// <param name="logSize">Size of the log.</param>
-            public LogReplicationAgent(TimeSpan maxDelay, int logSize)
+            /// <param name="maxDelay">
+            /// The max delay between two messages.
+            /// </param>
+            /// <param name="logSize">
+            /// Size of the log.
+            /// </param>
+            /// <param name="nodeId">Node id, used for log purposes.
+            /// </param>
+            /// <param name="master">Master logger to capture name.
+            /// </param>
+            public LogReplicationAgent(TimeSpan maxDelay, int logSize, string nodeId, ILog master)
             {
                 this.maxDelay = maxDelay;
                 this.minSynchronizedIndex = logSize - 1;
                 this.lastSentMessageTime = DateTime.Now;
+                this.logger =
+                    LogManager.GetLogger(
+                        string.Format("{0}(Replicator for {1})", master.Logger.Name, nodeId));
             }
 
             /// <summary>
@@ -251,6 +278,7 @@ namespace RAFTiNG.States
 
                 message.Entries = new LogEntry<T>[entriesToSend];
                 var offset = this.minSynchronizedIndex + 1;
+                this.logger.TraceFormat("Replicating {0} entries starting at {1}.", entriesToSend, offset);
                 for (var i = 0; i < entriesToSend; i++)
                 {
                     message.Entries[i] = log[i + offset];

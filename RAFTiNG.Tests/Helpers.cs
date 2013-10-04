@@ -25,6 +25,8 @@ namespace RAFTiNG.Tests
 
     internal static class Helpers
     {
+        private static int counter = 0;
+
         public static NodeSettings BuildNodeSettings(string nodeId, IEnumerable<string> nodes)
         {
             List<string> workNodes;
@@ -56,7 +58,7 @@ namespace RAFTiNG.Tests
                                {
                                    Layout =
                                        new PatternLayout(
-                                       "%date{HH:mm:ss,fff} %-5level - %message (%logger) [%thread]%newline"),
+                                       string.Format("run#{0}: %r %-5level - %message (%logger) [%thread]%newline", counter++)),
                                    Threshold = Level.Trace
                                };
             appender.ActivateOptions();

@@ -19,6 +19,7 @@
 namespace RAFTiNG.Tests
 {
     using System;
+    using System.Threading;
 
     using NFluent;
 
@@ -44,6 +45,7 @@ namespace RAFTiNG.Tests
                 var testedNode = new Node<string>(Helpers.BuildNodeSettings(nodeIds[i], nodeIds));
                 testedNode.SetMiddleware(this.middleware);
                 this.testedNodes[i] = testedNode;
+                testedNode.Initialize();
             }
         }
         
@@ -51,6 +53,7 @@ namespace RAFTiNG.Tests
         public void WhenISendAMessageTo(int p0)
         {
             this.middleware.SendMessage(this.testedNodes[p0 - 1].Id, "message");
+            Thread.Sleep(20);
         }
 
         [Then(@"Node (.*) has received my message")]
