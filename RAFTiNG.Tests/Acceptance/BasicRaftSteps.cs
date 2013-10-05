@@ -65,6 +65,8 @@ namespace RAFTiNG.Tests
     {
 
         private RaftingInfra infra;
+
+        private static int run;
         
         public BasicRaftSteps(RaftingInfra infra)
         {
@@ -77,7 +79,7 @@ namespace RAFTiNG.Tests
             var names = new List<string>(p0);
             for (var i = 0; i < p0; i++)
             {
-                names.Add(i.ToString(CultureInfo.InvariantCulture));
+                names.Add((i + (100 * run)).ToString(CultureInfo.InvariantCulture));
             }
 
             this.infra.Middleware = new Middleware();
@@ -93,6 +95,7 @@ namespace RAFTiNG.Tests
                 node.SetMiddleware(this.infra.Middleware);
                 this.infra.Nodes.Add(node);
             }
+            run++;
         }
         
         [When(@"I start instances (.*), (.*) and (.*)")]

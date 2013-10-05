@@ -164,7 +164,7 @@ namespace RAFTiNG.Messages
         {
             return
                 string.Format(
-                    "AppendEntries: LeaderId: {1} (Term {0}), PrevLogIndex: {2}, PrevLogTerm: {3}, CommitIndex: {4}, Entries: {5}",
+                    "AppendEntries: LeaderId: {1} (Term {0}), PrevLog Index and Term: {2}, {3}, Commit {4}, Entries: {5}",
                     this.leaderTerm,
                     this.leaderId,
                     this.prevLogIndex,

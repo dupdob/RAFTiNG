@@ -66,7 +66,7 @@ namespace RAFTiNG.Tests
             // Configure the root logger.
             var h = (log4net.Repository.Hierarchy.Hierarchy)LogManager.GetRepository();
             var rootLogger = h.Root;
-            rootLogger.Level = h.LevelMap["TRACE"];
+            rootLogger.Level = h.LevelMap["DEBUG"];
             BasicConfigurator.Configure(appender);
             return new LogWrapper();
         }

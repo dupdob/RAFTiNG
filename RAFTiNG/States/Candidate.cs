@@ -60,60 +60,46 @@ namespace RAFTiNG.States
 
         internal override void ProcessVoteRequest(RequestVote request)
         {
-            bool vote;
             var currentTerm = this.CurrentTerm;
-            if (request.Term <= currentTerm && request.CandidateId != this.Node.Id)
+            if (request.Term > currentTerm)
+            {
+                this.Logger.DebugFormat(
+                    "Received vote request from node with higher term ({0}'s term is {1}, our {2}). Resigning.",
+                    request.CandidateId,
+                    request.Term,
+                    currentTerm);
+
+                // we step down
+                this.Node.SwitchToAndProcessMessage(NodeStatus.Follower, request);
+                return;
+            }
+
+            if (request.Term < currentTerm && request.CandidateId != this.Node.Id)
             {
                 // requesting a vote for a node that has less recent information
                 // we decline
                 this.Logger.TraceFormat("Received a vote request from a node with a lower term. We decline {0}", request);
-                vote = false;
             }
             else
             {
-                if (request.Term > currentTerm)
-                {
-                    this.Logger.DebugFormat(
-                        "Received a vote request from a node with a higher term ({0}'s term is {1}, our {2}). Updating our term and resigning.",
-                        request.CandidateId,
-                        request.Term,
-                        currentTerm);
-
-                    // we step down
-                    this.Node.SwitchToAndProcessMessage(NodeStatus.Follower, request);
-                    return;
-                }
-
-                // we check how complete is the log ?
+                /*// we check how complete is the log ?
                 if (this.Node.State.LogIsBetterThan(request.LastLogTerm, request.LastLogIndex))
                 {
                     // our log is better than the candidate's
                     vote = false;
                     this.Logger.TraceFormat("Received a vote request from a node with less information. We do not grant vote. Message: {0}.", request);
                 }
-                else if (string.IsNullOrEmpty(this.Node.State.VotedFor)
-                    || this.Node.State.VotedFor == request.CandidateId)
+                else */
                 {
-                    // grant vote
-                    this.Logger.TraceFormat("We do grant vote. Message: {0}.", request);
-                    vote = true;
+                    // we step down
+                    this.Logger.DebugFormat("Received a vote request from a node with more information. We step down. Message: {0}.", request);
+                    this.Node.SwitchToAndProcessMessage(NodeStatus.Follower, request);
+                    return;
                 }
-                else
-                {
-                    // we already voted for someone
-                    vote = false;
-                    this.Logger.TraceFormat("We already voted. We do not grant vote. Message: {0}.", request);
-                }
-            }
-
-            if (vote)
-            {
-                this.Node.State.VotedFor = request.CandidateId;
-                this.ResetTimeout(.3);
             }
 
             // send back the response
-            this.Node.SendMessage(request.CandidateId, new GrantVote(vote, this.Node.Id, currentTerm));
+            this.Node.SendMessage(request.CandidateId, new GrantVote(false, this.Node.Id, currentTerm));
         }
 
         internal override void ProcessVote(GrantVote vote)
@@ -128,7 +114,7 @@ namespace RAFTiNG.States
 
             if (this.voteReceived.ContainsKey(vote.VoterId))
             {
-                // we already recieved a vote from the voter!
+                // we already received a vote from the voter!
                 this.Logger.WarnFormat(
                     "We received a second vote from {0}. Initial vote: {1}. Second vote: {2}.",
                     vote.VoterId,
@@ -154,7 +140,7 @@ namespace RAFTiNG.States
             }
             
             // we have a majority
-            this.Logger.DebugFormat("I have been elected as new leader by {0}.", nodes);
+            this.Logger.DebugFormat("I am your leader by {0}.", nodes);
             this.Node.SwitchTo(NodeStatus.Leader);
         }
 
@@ -175,6 +161,10 @@ namespace RAFTiNG.States
 
         protected override void HeartbeatTimeouted(object state)
         {
+            if (this.voteReceived.Count == this.Node.Settings.Nodes.Length)
+            {
+                this.Logger.DebugFormat("We got all votes back, but I am not elected.");
+            }
             // no election, no leader, start a new election
             this.EnterState();
         }

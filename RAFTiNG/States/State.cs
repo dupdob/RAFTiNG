@@ -33,8 +33,6 @@ namespace RAFTiNG.States
 
         private static Random seed = new Random();
 
-        private bool done;
-
         #endregion
 
         /// <summary>
@@ -46,15 +44,9 @@ namespace RAFTiNG.States
             this.Node = node;
         }
 
-        #region properyies
+        #region properties
 
-        protected bool Done
-        {
-            get
-            {
-                return this.done;
-            }
-        }
+        protected bool Done { get; private set; }
 
         protected ILog Logger
         {
@@ -91,7 +83,7 @@ namespace RAFTiNG.States
                 this.HeartBeatTimer.Dispose();
             }
 
-            this.done = true;
+            this.Done = true;
         }
 
         internal virtual void ProcessAppendEntriesAck(AppendEntriesAck appendEntriesAck)
@@ -101,7 +93,7 @@ namespace RAFTiNG.States
 
         protected void ResetTimeout(double randomPart = 0.0, double fixPart = 1.0)
         {
-            if (done)
+            if (this.Done)
             {
                 return;
             }

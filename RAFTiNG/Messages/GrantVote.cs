@@ -66,7 +66,7 @@ namespace RAFTiNG.Messages
         public override string ToString()
         {
             return string.Format(
-                "GrantVode: Voter {1} {0} (VoterTerm: {2})",
+                "GrantVote: Voter {1} {0} (VoterTerm: {2})",
                 this.VoteGranted ? "voted" : "did not vote",
                 this.VoterId,
                 this.VoterTerm);

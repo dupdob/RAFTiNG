@@ -42,11 +42,11 @@ namespace RAFTiNG.States
         {
             bool vote;
             var currentTerm = this.CurrentTerm;
-            if (request.Term <= currentTerm)
+            if (request.Term < currentTerm)
             {
                 // requesting a vote for a node that has less recent information
                 // we decline
-                this.Logger.TraceFormat("Received a vote request from a node with a lower term. We decline {0}", request);
+                this.Logger.TraceFormat("Vote request from node with lower term. Declined {0}.", request);
                 vote = false;
             }
             else
@@ -54,10 +54,8 @@ namespace RAFTiNG.States
                 if (request.Term > currentTerm)
                 {
                     this.Logger.DebugFormat(
-                        "Received a vote request from a node with a higher term ({0}'s term is {1}, our {2}). Updating our term.",
-                        request.CandidateId,
-                        request.Term,
-                        currentTerm);
+                        "Vote request from node with higher term. Updating our term. {0}",
+                        request);
 
                     // we need to upgrade our term
                     this.Node.State.CurrentTerm = request.Term;
@@ -68,14 +66,18 @@ namespace RAFTiNG.States
                 {
                     // our log is better than the candidate's
                     vote = false;
-                    this.Logger.TraceFormat("Received a vote request from a node with less information. We do not grant vote. Message: {0}.", request);
+                    this.Logger.TraceFormat("Vote request from a node with less information. We do not grant vote. Message: {0}.", request);
                 }
                 else if (string.IsNullOrEmpty(this.Node.State.VotedFor)
                     || this.Node.State.VotedFor == request.CandidateId)
                 {
                     // grant vote
-                    this.Logger.TraceFormat("We do grant vote. Message: {0}.", request);
+                    this.Logger.TraceFormat("We do grant vote to node {1}. Message: {0}.", request, request.CandidateId);
                     vote = true;
+                    this.Node.State.VotedFor = request.CandidateId;
+                    
+                    // as we did vote, we are ok to wait longer
+                    this.ResetTimeout(0, 2);
                 }
                 else
                 {
@@ -85,12 +87,6 @@ namespace RAFTiNG.States
                 }
             }
             
-            if (vote)
-            {
-                this.Node.State.VotedFor = request.CandidateId;
-                this.ResetTimeout(.2);
-            }
-
             // send back the response
             this.Node.SendMessage(request.CandidateId, new GrantVote(vote, this.Node.Id, currentTerm));
         }
@@ -147,9 +143,7 @@ namespace RAFTiNG.States
                 return;
             }
 
-            this.Logger.Warn("Timeout elapsed without sign from current leader.");
-
-            this.Logger.Info("Trigger an election.");
+            this.Logger.Info("Timeout elapsed without sign from current leader. Trigger an election.");
 
             // heartBeat timeout, we will trigger an election.
             this.Node.SwitchTo(NodeStatus.Candidate);

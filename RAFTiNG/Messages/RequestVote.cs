@@ -79,7 +79,7 @@ namespace RAFTiNG.Messages
         public override string ToString()
         {
             return string.Format(
-                "RequestVote: CandidateId: {1} (Term {0}, LastLogIndex: {2}, LastLogTerm: {3})",
+                "RequestVote: Candidate: {1} (Term {0}, LastLogEntry Index and Term: {2}, {3})",
                 this.Term,
                 this.CandidateId,
                 this.LastLogIndex,

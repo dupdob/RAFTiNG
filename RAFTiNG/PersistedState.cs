@@ -115,7 +115,7 @@ namespace RAFTiNG
         #endregion
 
         /// <summary>
-        /// Adds the entry.
+        /// Adds the entry.é
         /// </summary>
         /// <param name="logEntry">The log entry.</param>
         public void AddEntry(LogEntry<T> logEntry)

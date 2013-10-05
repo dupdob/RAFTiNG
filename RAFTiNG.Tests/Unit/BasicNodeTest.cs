@@ -223,7 +223,7 @@ namespace RAFTiNG.Tests.Unit
                     var entry = new LogEntry<string>("dummy", 1L);
                     message.Entries = new[] { entry };
                     middleware.SendMessage("1", message);
-
+                    Thread.Sleep(1);
                     Check.ThatEnum(node.Status).IsEqualTo(NodeStatus.Follower);
 
                     Check.That(node.State.LogEntries.Count).IsEqualTo(1);
