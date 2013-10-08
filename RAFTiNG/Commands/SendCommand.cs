@@ -12,7 +12,7 @@
 //   limitations under the License.
 // </copyright>
 //  --------------------------------------------------------------------------------------------------------------------
-namespace RAFTiNG.Messages
+namespace RAFTiNG.Commands
 {
     /// <summary>
     /// Command to send to the state machine.
@@ -20,7 +20,15 @@ namespace RAFTiNG.Messages
     /// <typeparam name="T">Type of the command.</typeparam>
     public class SendCommand<T>
     {
+        #region fields
+
         private T command;
+
+        private string id;
+
+        private long identifier;
+
+        #endregion
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SendCommand{T}"/> class.
@@ -29,6 +37,30 @@ namespace RAFTiNG.Messages
         public SendCommand(T command)
         {
             this.command = command;
+        }
+
+        public long Identifier
+        {
+            get
+            {
+                return this.identifier;
+            }
+        }
+
+        public string Id
+        {
+            get
+            {
+                return this.id;
+            }
+        }
+
+        public T Command
+        {
+            get
+            {
+                return this.command;
+            }
         }
     }   
 }

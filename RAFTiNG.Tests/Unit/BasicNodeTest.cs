@@ -47,7 +47,7 @@ namespace RAFTiNG.Tests.Unit
         public void DefaultNodeStateIsOk()
         {
             var settings = Helpers.BuildNodeSettings("1", new string[] { "2", "3", "4" });
-            using (var node = new Node<string>(settings))
+            using (var node = new Node<string>(settings, new Middleware()))
            {
 
                Check.ThatEnum(node.Status).IsEqualTo(NodeStatus.Initializing);
@@ -66,9 +66,8 @@ namespace RAFTiNG.Tests.Unit
             var settings = Helpers.BuildNodeSettings("1", new string[] { "1", "2", "3", "4", "5" });
             settings.TimeoutInMs = 10;
 
-            using (var node = new Node<string>(settings))
+            using (var node = new Node<string>(settings, new Middleware()))
             {
-                node.SetMiddleware(new Middleware());
                 node.Initialize();
 
                 Check.ThatEnum(node.Status).IsEqualTo(NodeStatus.Follower);
@@ -81,9 +80,8 @@ namespace RAFTiNG.Tests.Unit
             var settings = Helpers.BuildNodeSettings("1", new string[] { "1", "2", "3", "4", "5" });
             settings.TimeoutInMs = 10;
 
-            using (var node = new Node<string>(settings))
+            using (var node = new Node<string>(settings, new Middleware()))
             {
-                node.SetMiddleware(new Middleware());
                 node.Initialize();
                 Thread.Sleep(30);
 
@@ -201,12 +199,11 @@ namespace RAFTiNG.Tests.Unit
             {
                 var settings = Helpers.BuildNodeSettings("1", new[] { "1", "2", "3", "4", "5" });
                 settings.TimeoutInMs = 10;
-                var node = new Node<string>(settings);
+                var middleware = new Middleware();
+                var node = new Node<string>(settings, middleware);
 
                 using (node)
                 {
-                    var middleware = new Middleware();
-                    node.SetMiddleware(middleware);
                     node.Initialize();
                     Thread.Sleep(50);
 
@@ -223,7 +220,7 @@ namespace RAFTiNG.Tests.Unit
                     var entry = new LogEntry<string>("dummy", 1L);
                     message.Entries = new[] { entry };
                     middleware.SendMessage("1", message);
-                    Thread.Sleep(1);
+                    Thread.Sleep(10);
                     Check.ThatEnum(node.Status).IsEqualTo(NodeStatus.Follower);
 
                     Check.That(node.State.LogEntries.Count).IsEqualTo(1);
@@ -244,6 +241,7 @@ namespace RAFTiNG.Tests.Unit
                 {
                     Monitor.Wait(this.synchro, 50);
                 }
+
                 Check.That(this.lastMessage).IsNotEqualTo(null).And.IsInstanceOf<GrantVote>();
 
                 var answer = this.lastMessage as GrantVote;
@@ -258,18 +256,16 @@ namespace RAFTiNG.Tests.Unit
                     Check.That(answer.VoteGranted).IsFalse();
                 }
             }
-
         }
 
         // helper to initilize setip
         private Middleware InitNodes(out Node<string> node)
         {
             var middleware = new Middleware();
-            var settings = Helpers.BuildNodeSettings("1", new string[] { "1", "2", "3", "4", "5" });
+            var settings = Helpers.BuildNodeSettings("1", new[] { "1", "2", "3", "4", "5" });
             settings.TimeoutInMs = Timeout.Infinite; // no timeout
-            node = new Node<string>(settings);
+            node = new Node<string>(settings, middleware);
 
-            node.SetMiddleware(middleware);
             node.Initialize();
 
             middleware.RegisterEndPoint("2", this.MessageReceived);

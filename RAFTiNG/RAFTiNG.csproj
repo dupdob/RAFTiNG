@@ -43,13 +43,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Commands\ErrorStatus.cs" />
     <Compile Include="IMiddleware.cs" />
     <Compile Include="LogEntry.cs" />
     <Compile Include="LogExtensions.cs" />
     <Compile Include="Messages\AppendEntries.cs" />
     <Compile Include="Messages\AppendEntriesAck.cs" />
     <Compile Include="Messages\GrantVote.cs" />
-    <Compile Include="Messages\SendCommand.cs" />
+    <Compile Include="Commands\SendCommand.cs" />
     <Compile Include="Middleware.cs" />
     <Compile Include="Node.cs" />
     <Compile Include="NodeSettings.cs" />
@@ -66,6 +67,7 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

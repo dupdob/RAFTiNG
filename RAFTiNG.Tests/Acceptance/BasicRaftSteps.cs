@@ -91,8 +91,7 @@ namespace RAFTiNG.Tests
             for (var i = 0; i < p0; i++)
             {
                 settings.NodeId = names[i];
-                var node = new Node<string>(settings);
-                node.SetMiddleware(this.infra.Middleware);
+                var node = new Node<string>(settings, this.infra.Middleware);
                 this.infra.Nodes.Add(node);
             }
             run++;

@@ -66,11 +66,11 @@ namespace RAFTiNG.Tests.Acceptance
         }
         
         [NUnit.Framework.TestAttribute()]
-        [NUnit.Framework.DescriptionAttribute("Three RAFTs allow proper initialization.")]
+        [NUnit.Framework.DescriptionAttribute("Three RAFTs allow proper initialization")]
         [NUnit.Framework.CategoryAttribute("mytag")]
-        public virtual void ThreeRAFTsAllowProperInitialization_()
+        public virtual void ThreeRAFTsAllowProperInitialization()
         {
-            TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Three RAFTs allow proper initialization.", new string[] {
+            TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Three RAFTs allow proper initialization", new string[] {
                         "mytag"});
 #line 6
 this.ScenarioSetup(scenarioInfo);

@@ -39,17 +39,16 @@ namespace RAFTiNG.Tests.Unit
             {
                 var middleware = new Middleware();
                 var settings = Helpers.BuildNodeSettings("1", new[] { "1", "2" });
+                settings.TimeoutInMs = 10;
 
-                using (var leader = new Node<string>(settings))
+                using (var leader = new Node<string>(settings, middleware))
                 {
-                    long term = 0;
-                    settings.TimeoutInMs = 1;
-                    leader.SetMiddleware(middleware);
                     // we inject
-                    leader.State.AppendEntries(-1, new[]{new LogEntry<string>("one"), new LogEntry<string>("two"), });
+                    leader.State.AppendEntries(
+                        -1, new[] { new LogEntry<string>("one"), new LogEntry<string>("two"), });
 
-                    middleware.RegisterEndPoint("2", OnMessate);
-                    lock (synchro)
+                    middleware.RegisterEndPoint("2", this.OnMessage);
+                    lock (this.synchro)
                     {
                         leader.Initialize();
                         const int MaxDelay = 3000;
@@ -67,22 +66,21 @@ namespace RAFTiNG.Tests.Unit
             {
                 var middleware = new Middleware();
                 var settings = Helpers.BuildNodeSettings("1", new[] { "1", "2" });
+                settings.TimeoutInMs = 1;
 
-                using (var leader = new Node<string>(settings))
+                using (var leader = new Node<string>(settings, middleware))
                 {
-                    long term = 0;
-                    settings.TimeoutInMs = 1;
-                    leader.SetMiddleware(middleware);
                     // we inject
                     leader.State.AppendEntries(-1, new[] { new LogEntry<string>("one"), new LogEntry<string>("two"), new LogEntry<string>("3") });
 
-                    middleware.RegisterEndPoint("2", OnMessate);
-                    lock (synchro)
+                    middleware.RegisterEndPoint("2", obj => this.OnMessage(obj));
+                    lock (this.synchro)
                     {
                         leader.Initialize();
                         const int MaxDelay = 3000;
                         var initIndex = this.WaitForLogSynchro(MaxDelay, middleware, leader);
                         Check.That(initIndex).IsEqualTo(2);
+
                         // let sometime for the leader to commit entries
                         Thread.Sleep(50);
                         Check.That(leader.State.CommitIndex).IsEqualTo(2);
@@ -91,15 +89,14 @@ namespace RAFTiNG.Tests.Unit
             }
         }
         
-        private int WaitForLogSynchro(int MaxDelay, Middleware middleware, Node<string> leader)
+        private int WaitForLogSynchro(int maxDelay, Middleware middleware, Node<string> leader)
         {
-            long term;
             var initIndex = 0;
             var timer = new Stopwatch();
             timer.Start();
             for (;;)
             {
-                var millisecondsTimeout = Math.Max(MaxDelay - (int)timer.ElapsedMilliseconds, 0);
+                var millisecondsTimeout = Math.Max(maxDelay - (int)timer.ElapsedMilliseconds, 0);
                 if (Debugger.IsAttached)
                 {
                     millisecondsTimeout = Timeout.Infinite;
@@ -109,6 +106,7 @@ namespace RAFTiNG.Tests.Unit
                 {
                     break;
                 }
+
                 var message = this.lastMessage;
                 this.lastMessage = null;
                 if (message is RequestVote)
@@ -116,10 +114,10 @@ namespace RAFTiNG.Tests.Unit
                     // we vote for the leader
                     middleware.SendMessage("1", new GrantVote(true, "2", 0));
                 }
+
                 if (message is AppendEntries<string>)
                 {
                     var appendMessage = message as AppendEntries<string>;
-                    term = appendMessage.LeaderTerm;
                     if (appendMessage.PrevLogIndex != initIndex)
                     {
                         middleware.SendMessage("1", new AppendEntriesAck("2", 0, false));
@@ -134,15 +132,17 @@ namespace RAFTiNG.Tests.Unit
                         }
                     }
                 }
+
                 if (millisecondsTimeout == 0)
                 {
                     break;
                 }
             }
+
             return initIndex;
         }
 
-        private void OnMessate(object obj)
+        private void OnMessage(object obj)
         {
             lock (this.synchro)
             {

@@ -19,7 +19,7 @@ namespace RAFTiNG.Messages
     /// </summary>
     public class AppendEntriesAck
     {
-        private string nodeId;
+        private readonly string nodeId;
 
         private long term;
 

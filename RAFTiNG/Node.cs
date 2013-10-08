@@ -30,7 +30,7 @@ namespace RAFTiNG
     /// The nodes aggregates a persisted state object that must be kept synchronized with a persistent storage.
     /// The node also aggregates a <see cref="State"/> subclass instance to implement the active state rules.
     /// </summary>
-    /// <typeparam name="T">Command type for the internal state machine.</typeparam>
+    /// <typeparam name="T">Command type for the middleware state machine.</typeparam>
     public sealed class Node<T> : IDisposable
     {
         #region fields
@@ -39,7 +39,7 @@ namespace RAFTiNG
         
         private readonly ILog logger;
 
-        private IMiddleware middleware;
+        private IMiddleware internalMiddleware;
 
         private NodeSettings settings;
 
@@ -52,11 +52,16 @@ namespace RAFTiNG
         /// <summary>
         /// Initializes a new instance of the <see cref="Node{T}"/> class.
         /// </summary>
-        /// <param name="settings">The node settings.</param>
-        public Node(NodeSettings settings)
+        /// <param name="settings">
+        /// The node settings.
+        /// </param>
+        /// <param name="middleware">Middleware used to exchange message.
+        /// </param>
+        public Node(NodeSettings settings, IMiddleware middleware)
         {
             this.Id = settings.NodeId;
             this.settings = settings;
+            this.internalMiddleware = middleware;
 
             this.Status = NodeStatus.Initializing;
             this.State = new PersistedState<T>();
@@ -93,6 +98,9 @@ namespace RAFTiNG
         /// </summary>
         public PersistedState<T> State { get; private set; }
 
+        /// <summary>
+        /// Gets the id of the current leader, empty if no identified leader.
+        /// </summary>
         internal string LeaderId { get; set; }
 
         internal ILog Logger
@@ -103,6 +111,9 @@ namespace RAFTiNG
             }
         }
 
+        /// <summary>
+        /// Gets the timeout base value.
+        /// </summary>
         internal int TimeOutInMs
         {
             get
@@ -111,6 +122,9 @@ namespace RAFTiNG
             }
         }
 
+        /// <summary>
+        /// Gets the RAFTiNG settings.
+        /// </summary>
         internal NodeSettings Settings
         {
             get
@@ -124,29 +138,13 @@ namespace RAFTiNG
         #region methods
 
         /// <summary>
-        /// Sets the middleware for the node
-        /// </summary>
-        /// <param name="test">The test.</param>
-        public void SetMiddleware(IMiddleware test)
-        {
-            if (test == null)
-            {
-                throw new ArgumentNullException("test");
-            }
-
-            this.logger.InfoFormat("Middleware registration to address {0}", this.Id);
-            test.RegisterEndPoint(this.Id, this.MessageReceived);
-            this.middleware = test;
-        }
-
-        /// <summary>
         /// Initializes this instance.
         /// </summary>
         public void Initialize()
         {
-            if (this.middleware == null)
+            if (this.internalMiddleware == null)
             {
-                throw new InvalidOperationException("Must call SetMiddleware first!");
+                throw new InvalidOperationException("Must call SetInternalMiddleware first!");
             }
 
             // TODO: restore persisted state
@@ -155,11 +153,13 @@ namespace RAFTiNG
                 throw new InvalidOperationException("Node is already initialized.");
             }
 
+            this.logger.InfoFormat("Middleware registration to address {0}.", this.Id);
+            this.internalMiddleware.RegisterEndPoint(this.Id, this.MessageReceived);
             this.SwitchTo(NodeStatus.Follower);
         }
 
         /// <summary>
-        /// Adds a entry.
+        /// Adds an entry.
         /// </summary>
         /// <param name="command">The command.</param>
         public void AddEntry(T command)
@@ -180,17 +180,31 @@ namespace RAFTiNG
             }
         }
 
+        /// <summary>
+        /// Changes the current status.
+        /// </summary>
+        /// <param name="status">Target status.</param>
         internal void SwitchTo(NodeStatus status)
         {
             this.SequencedSwitch(status);
         }
 
+        /// <summary>
+        /// Changes the current status and process the given message.
+        /// </summary>
+        /// <param name="status">Target status.</param>
+        /// <param name="message">Message to be processed.</param>
+        /// <remarks>Used this method when a message triggers a step down.</remarks>
         internal void SwitchToAndProcessMessage(NodeStatus status, object message)
         {
             this.SequencedSwitch(status);
             this.SequencedMessageReceived(message);
         }
 
+        /// <summary>
+        /// Increase the current term.
+        /// </summary>
+        /// <returns>The new term.</returns>
         internal long IncrementTerm()
         {
             var nextTerm = this.State.CurrentTerm + 1;
@@ -198,9 +212,14 @@ namespace RAFTiNG
             return nextTerm;
         }
 
+        /// <summary>
+        /// Send message to a specific node. 
+        /// </summary>
+        /// <param name="dest">Destination node.</param>
+        /// <param name="message">Message to be sent.</param>
         internal void SendMessage(string dest, object message)
         {
-            this.middleware.SendMessage(dest, message);
+            this.internalMiddleware.SendMessage(dest, message);
         }
 
         internal void SendToOthers(object message)
@@ -210,7 +229,7 @@ namespace RAFTiNG
             // send request to all nodes
             foreach (var otherNode in this.settings.OtherNodes())
             {
-                this.middleware.SendMessage(otherNode, message);
+                this.internalMiddleware.SendMessage(otherNode, message);
             }
         }
 
@@ -253,6 +272,7 @@ namespace RAFTiNG
             this.currentState.EnterState();
         }
 
+        // raft message received
         private void MessageReceived(object obj)
         {
             this.sequencer.Sequence(() => this.SequencedMessageReceived(obj));
@@ -293,7 +313,10 @@ namespace RAFTiNG
             if (appendEntriesAck != null)
             {
                 this.currentState.ProcessAppendEntriesAck(appendEntriesAck);
+                return;
             }
+
+            this.logger.ErrorFormat("Message not recognized (Type: {0}, Message: {1})", obj.GetType(), obj);
         }
 
         #endregion

@@ -66,13 +66,13 @@ namespace RAFTiNG.States
                 {
                     // our log is better than the candidate's
                     vote = false;
-                    this.Logger.TraceFormat("Vote request from a node with less information. We do not grant vote. Message: {0}.", request);
+                    this.Logger.TraceFormat("Vote request from node with less information. We do not vote. Message: {0}.", request);
                 }
                 else if (string.IsNullOrEmpty(this.Node.State.VotedFor)
                     || this.Node.State.VotedFor == request.CandidateId)
                 {
                     // grant vote
-                    this.Logger.TraceFormat("We do grant vote to node {1}. Message: {0}.", request, request.CandidateId);
+                    this.Logger.TraceFormat("We do vote for node {1}. Message: {0}.", request, request.CandidateId);
                     vote = true;
                     this.Node.State.VotedFor = request.CandidateId;
                     

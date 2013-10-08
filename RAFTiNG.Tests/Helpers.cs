@@ -25,7 +25,7 @@ namespace RAFTiNG.Tests
 
     internal static class Helpers
     {
-        private static int counter = 0;
+        private static int counter;
 
         public static NodeSettings BuildNodeSettings(string nodeId, IEnumerable<string> nodes)
         {
@@ -71,14 +71,14 @@ namespace RAFTiNG.Tests
             return new LogWrapper();
         }
 
-        private class LogWrapper: IDisposable 
+        private class LogWrapper : IDisposable
         {
             /// <summary>
-            /// Exécute les tâches définies par l'application associées à la libération ou à la redéfinition des ressources non managées.
+            /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
             /// </summary>
             public void Dispose()
             {
-                log4net.LogManager.Shutdown();
+                LogManager.Shutdown();
             }
         }
     }

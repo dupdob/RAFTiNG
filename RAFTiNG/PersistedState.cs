@@ -32,6 +32,8 @@ namespace RAFTiNG
 
         #endregion
 
+        #region constructor
+
         /// <summary>
         /// Initializes a new instance of the <see cref="PersistedState{T}"/> class.
         /// </summary>
@@ -39,6 +41,8 @@ namespace RAFTiNG
         {
             this.LogEntries = new List<LogEntry<T>>();
         }
+
+        #endregion
 
         #region properties
 
@@ -114,6 +118,8 @@ namespace RAFTiNG
 
         #endregion
 
+        #region methods
+
         /// <summary>
         /// Adds the entry.é
         /// </summary>
@@ -122,8 +128,7 @@ namespace RAFTiNG
         {
             if (logEntry.Term == 0)
             {
-                var newEntry = new LogEntry<T>(
-                    logEntry.Command, this.CurrentTerm);
+                var newEntry = new LogEntry<T>(logEntry.Command, this.CurrentTerm);
                 this.LogEntries.Add(newEntry);
             }
             else
@@ -205,17 +210,19 @@ namespace RAFTiNG
             prevLogIndex++;
             foreach (var logEntry in entries)
             {
-               if (prevLogIndex == this.LogEntries.Count)
-               {
-                   this.LogEntries.Add(logEntry);
-               }
-               else
-               {
-                   this.LogEntries[prevLogIndex] = logEntry;
-               }
+                if (prevLogIndex == this.LogEntries.Count)
+                {
+                    this.LogEntries.Add(logEntry);
+                }
+                else
+                {
+                    this.LogEntries[prevLogIndex] = logEntry;
+                }
 
                 prevLogIndex++;
             }
         }
+
+        #endregion
     }
 }

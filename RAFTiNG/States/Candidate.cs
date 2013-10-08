@@ -165,6 +165,7 @@ namespace RAFTiNG.States
             {
                 this.Logger.DebugFormat("We got all votes back, but I am not elected.");
             }
+            
             // no election, no leader, start a new election
             this.EnterState();
         }
