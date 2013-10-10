@@ -67,11 +67,9 @@ namespace RAFTiNG.Tests.Acceptance
         
         [NUnit.Framework.TestAttribute()]
         [NUnit.Framework.DescriptionAttribute("Three RAFTs allow proper initialization")]
-        [NUnit.Framework.CategoryAttribute("mytag")]
         public virtual void ThreeRAFTsAllowProperInitialization()
         {
-            TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Three RAFTs allow proper initialization", new string[] {
-                        "mytag"});
+            TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Three RAFTs allow proper initialization", ((string[])(null)));
 #line 6
 this.ScenarioSetup(scenarioInfo);
 #line 7
@@ -96,7 +94,7 @@ this.ScenarioSetup(scenarioInfo);
 #line 13
  testRunner.When("I start instances 1, 2 and 3", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
 #line 14
- testRunner.And("I wait 1 seconde", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+ testRunner.And("I wait 1 second", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
 #line 15
  testRunner.Then("there is 1 leader", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
 #line hidden
@@ -115,7 +113,7 @@ this.ScenarioSetup(scenarioInfo);
 #line 19
  testRunner.When("I start all instances", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
 #line 20
- testRunner.And("I wait 1 seconde", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+ testRunner.And("I wait 1 second", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
 #line 21
  testRunner.Then("there is 1 leader", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
 #line hidden
@@ -134,7 +132,7 @@ this.ScenarioSetup(scenarioInfo);
 #line 26
  testRunner.When("I start all instances", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
 #line 27
- testRunner.And("I wait 1 seconde", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+ testRunner.And("I wait 1 second", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
 #line 28
  testRunner.Then("there is 1 leader", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
 #line hidden
@@ -153,7 +151,7 @@ this.ScenarioSetup(scenarioInfo);
 #line 32
  testRunner.When("I start all instances", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
 #line 33
- testRunner.And("I wait 1 seconde", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+ testRunner.And("I wait 1 second", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
 #line 34
  testRunner.Then("there is 1 leader", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
 #line hidden

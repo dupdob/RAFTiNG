@@ -175,6 +175,20 @@ namespace RAFTiNG.Tests.Unit
             }
         }
 
+        private bool WaitState(Node<string> node, NodeStatus status, int waitTime)
+        {
+            int step = 10;
+            for (int delay = 0; delay < waitTime; delay += step)
+            {
+                if (node.Status == status)
+                {
+                    return true;
+                }
+                Thread.Sleep(step);
+            }
+            return node.Status == status;
+        }
+
         [Test]
         public void NodeWithMoreRescentTermDoesNotGrantVote()
         {
@@ -205,23 +219,22 @@ namespace RAFTiNG.Tests.Unit
                 using (node)
                 {
                     node.Initialize();
-                    Thread.Sleep(50);
-
                     // should switch to candidate
-                    Check.ThatEnum(node.Status).IsEqualTo(NodeStatus.Candidate);
+                    Check.That(this.WaitState(node, NodeStatus.Candidate, 30)).IsTrue();
 
                     // now we pretend there is a leader
-                    var message = new AppendEntries<string>();
+                    var message = new AppendEntries<string>
+                                      {
+                                          LeaderId = "2",
+                                          LeaderTerm = 5,
+                                          PrevLogIndex = -1,
+                                          PrevLogTerm = 0
+                                      };
 
-                    message.LeaderId = "2";
-                    message.LeaderTerm = 5;
-                    message.PrevLogIndex = -1;
-                    message.PrevLogTerm = 0;
                     var entry = new LogEntry<string>("dummy", 1L);
                     message.Entries = new[] { entry };
                     middleware.SendMessage("1", message);
-                    Thread.Sleep(10);
-                    Check.ThatEnum(node.Status).IsEqualTo(NodeStatus.Follower);
+                    Check.That(this.WaitState(node, NodeStatus.Follower, 30)).IsTrue();
 
                     Check.That(node.State.LogEntries.Count).IsEqualTo(1);
 

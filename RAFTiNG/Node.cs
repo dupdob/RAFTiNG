@@ -22,6 +22,7 @@ namespace RAFTiNG
 
     using log4net;
 
+    using RAFTiNG.Commands;
     using RAFTiNG.Messages;
     using RAFTiNG.States;
 
@@ -39,7 +40,7 @@ namespace RAFTiNG
         
         private readonly ILog logger;
 
-        private IMiddleware internalMiddleware;
+        private readonly IMiddleware internalMiddleware;
 
         private NodeSettings settings;
 
@@ -98,11 +99,7 @@ namespace RAFTiNG
         /// </summary>
         public PersistedState<T> State { get; private set; }
 
-        /// <summary>
-        /// Gets the id of the current leader, empty if no identified leader.
-        /// </summary>
-        internal string LeaderId { get; set; }
-
+ 
         internal ILog Logger
         {
             get
@@ -133,6 +130,14 @@ namespace RAFTiNG
             }
         }
 
+        /// <summary>
+        /// Gets or sets the leader id.
+        /// </summary>
+        /// <value>
+        /// The leader id.
+        /// </value>
+        internal string LeaderId { get; set; }
+        
         #endregion
 
         #region methods
@@ -159,7 +164,7 @@ namespace RAFTiNG
         }
 
         /// <summary>
-        /// Adds an entry.
+        /// Adds an entry to this node.
         /// </summary>
         /// <param name="command">The command.</param>
         public void AddEntry(T command)
@@ -179,6 +184,43 @@ namespace RAFTiNG
                 this.currentState = null;
             }
         }
+
+        /// <summary>
+        /// Sends the command into the cluster.
+        /// </summary>
+        /// <param name="command">The command to be processed.</param>
+        /// <returns>true if the command was send, which means the cluster has a leader.</returns>
+        public bool SendCommand(T command)
+        {
+            if (string.IsNullOrEmpty(this.LeaderId))
+            {
+                // no leader
+                return false;
+            }
+
+            this.Sequence(
+                () =>
+                {
+                    if (string.IsNullOrEmpty(this.LeaderId))
+                    {
+                        // no leader
+                        return;
+                    }
+
+                    var message = new SendCommand<T>(command);
+                    if (this.LeaderId == this.Id)
+                    {
+                        this.SequencedMessageReceived(message);
+                    }
+                    else
+                    {
+                        this.SendMessage(this.LeaderId, message);
+                    }
+                });
+            return true;
+        }
+
+        #region Methodes used by the state object
 
         /// <summary>
         /// Changes the current status.
@@ -222,6 +264,10 @@ namespace RAFTiNG
             this.internalMiddleware.SendMessage(dest, message);
         }
 
+        /// <summary>
+        /// Broadcast a message to all other nodes.
+        /// </summary>
+        /// <param name="message">Message to be broadcasted.</param>
         internal void SendToOthers(object message)
         {
             this.logger.TraceFormat("Broadcast message to all other nodes: {0}", message);
@@ -233,11 +279,20 @@ namespace RAFTiNG
             }
         }
 
+        /// <summary>
+        /// Ensure an <see cref="System.Action"/> is executed non concurrently.
+        /// </summary>
+        /// <param name="action">Action to sequence.</param>
+        /// <remarks>Use this function to prevent race conditions, so it should be the entry point for all messages, timers and other asynchronous calls.</remarks>
         internal void Sequence(Action action)
         {
             this.sequencer.Sequence(action);
         }
 
+        /// <summary>
+        /// Implementation of the Switch method, assuming no race conditions is possible.
+        /// </summary>
+        /// <param name="status">Target status.</param>
         private void SequencedSwitch(NodeStatus status)
         {
             State<T> newState;
@@ -272,12 +327,18 @@ namespace RAFTiNG
             this.currentState.EnterState();
         }
 
+        #endregion
+
         // raft message received
         private void MessageReceived(object obj)
         {
             this.sequencer.Sequence(() => this.SequencedMessageReceived(obj));
         }
 
+        /// <summary>
+        /// Process a received message. Basically route the message to the adequate handler.
+        /// </summary>
+        /// <param name="obj">Message to route.</param>
         private void SequencedMessageReceived(object obj)
         {
             if (this.currentState == null)

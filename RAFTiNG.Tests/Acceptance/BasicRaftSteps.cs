@@ -131,8 +131,8 @@ namespace RAFTiNG.Tests
             Check.That(leaders).IsEqualTo(p0);
         }
 
-        [When(@"I wait (.*) seconde")]
-        public void WhenIWaitSeconde(int p0)
+        [When(@"I wait (.*) second")]
+        public void WhenIWaitSecond(int p0)
         {
             Thread.Sleep(p0 * 1000);
         }
