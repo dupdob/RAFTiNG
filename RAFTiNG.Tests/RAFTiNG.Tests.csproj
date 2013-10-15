@@ -61,6 +61,7 @@
     <Compile Include="AsyncAppender.cs" />
     <Compile Include="Helpers.cs" />
     <Compile Include="Unit\ClientAPITests.cs" />
+    <Compile Include="Unit\CommandApiTest.cs" />
     <Compile Include="Unit\LogReplicationTest.cs" />
     <Compile Include="Unit\PersistedStateTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
