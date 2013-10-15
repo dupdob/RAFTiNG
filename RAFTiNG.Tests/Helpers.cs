@@ -54,6 +54,7 @@ namespace RAFTiNG.Tests
 
         internal static IDisposable InitLog4Net()
         {
+            var asyncAppender = new AsyncAppender();
             var appender = new ConsoleAppender
                                {
                                    Layout =
@@ -62,12 +63,14 @@ namespace RAFTiNG.Tests
                                    Threshold = Level.Trace
                                };
             appender.ActivateOptions();
+            asyncAppender.AddAppender(appender);
+            asyncAppender.ActivateOptions();
 
             // Configure the root logger.
             var h = (log4net.Repository.Hierarchy.Hierarchy)LogManager.GetRepository();
             var rootLogger = h.Root;
             rootLogger.Level = h.LevelMap["TRACE"];
-            BasicConfigurator.Configure(appender);
+            BasicConfigurator.Configure(asyncAppender);
             return new LogWrapper();
         }
 

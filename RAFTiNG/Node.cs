@@ -98,7 +98,6 @@ namespace RAFTiNG
         /// Gets the persisted state.
         /// </summary>
         public PersistedState<T> State { get; private set; }
-
  
         internal ILog Logger
         {

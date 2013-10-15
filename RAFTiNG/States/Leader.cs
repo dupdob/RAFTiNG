@@ -38,14 +38,12 @@ namespace RAFTiNG.States
             // keep track of followers log state
             foreach (var otherNode in this.Node.Settings.OtherNodes())
             {
-                // ReSharper disable PossibleLossOfFraction
                 this.states[otherNode] =
                     new LogReplicationAgent(
-                        TimeSpan.FromMilliseconds(this.Node.Settings.TimeoutInMs / 2),
+                        TimeSpan.FromMilliseconds(this.Node.Settings.TimeoutInMs / 2.0),
                         this.Node.State.LogEntries.Count,
                         otherNode,
                         this.Logger);
-                // ReSharper restore PossibleLossOfFraction
             }
 
             this.BroadcastHeartbeat();

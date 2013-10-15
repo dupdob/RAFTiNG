@@ -22,7 +22,7 @@ namespace RAFTiNG.Commands
     {
         #region fields
 
-        private T command;
+        private readonly T command;
 
         private string id;
 
@@ -39,6 +39,12 @@ namespace RAFTiNG.Commands
             this.command = command;
         }
 
+        /// <summary>
+        /// Gets the identifier.
+        /// </summary>
+        /// <value>
+        /// The identifier.
+        /// </value>
         public long Identifier
         {
             get
@@ -47,6 +53,12 @@ namespace RAFTiNG.Commands
             }
         }
 
+        /// <summary>
+        /// Gets the id.
+        /// </summary>
+        /// <value>
+        /// The id.
+        /// </value>
         public string Id
         {
             get
@@ -55,6 +67,12 @@ namespace RAFTiNG.Commands
             }
         }
 
+        /// <summary>
+        /// Gets the command.
+        /// </summary>
+        /// <value>
+        /// The command.
+        /// </value>
         public T Command
         {
             get

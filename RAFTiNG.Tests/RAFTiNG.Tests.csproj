@@ -58,6 +58,7 @@
       <DependentUpon>BasicRaft.feature</DependentUpon>
     </Compile>
     <Compile Include="Acceptance\BasicRaftSteps.cs" />
+    <Compile Include="AsyncAppender.cs" />
     <Compile Include="Helpers.cs" />
     <Compile Include="Unit\ClientAPITests.cs" />
     <Compile Include="Unit\LogReplicationTest.cs" />

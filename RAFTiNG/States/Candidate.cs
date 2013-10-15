@@ -49,7 +49,7 @@ namespace RAFTiNG.States
             this.Node.LeaderId = string.Empty;
 
             // vote for self!
-            this.ProcessVote(new GrantVote(true, candidateId, nextTerm));
+            this.RegisterVote(new GrantVote(true, candidateId, nextTerm));
             
             // send vote request
             this.Logger.TraceFormat("Broadcast a vote request");
@@ -123,25 +123,7 @@ namespace RAFTiNG.States
                 return;
             }
 
-            this.voteReceived.Add(vote.VoterId, vote);
-
-            // count votes
-            var votes = this.voteReceived.Values.Count(grantVote => grantVote.VoteGranted);
-
-            if (votes < this.Node.Settings.Majority)
-            {
-                return;
-            }
-
-            var nodes = new StringBuilder();
-            foreach (var key in this.voteReceived.Keys)
-            {
-                nodes.AppendFormat("{0},", key);
-            }
-            
-            // we have a majority
-            this.Logger.DebugFormat("I am your leader by {0}.", nodes);
-            this.Node.SwitchTo(NodeStatus.Leader);
+            this.RegisterVote(vote);
         }
 
         internal override void ProcessAppendEntries(AppendEntries<T> appendEntries)
@@ -168,6 +150,29 @@ namespace RAFTiNG.States
             
             // no election, no leader, start a new election
             this.EnterState();
+        }
+
+        private void RegisterVote(GrantVote vote)
+        {
+            this.voteReceived.Add(vote.VoterId, vote);
+
+            // count votes
+            var votes = this.voteReceived.Values.Count(grantVote => grantVote.VoteGranted);
+
+            if (votes < this.Node.Settings.Majority)
+            {
+                return;
+            }
+
+            var nodes = new StringBuilder();
+            foreach (var key in this.voteReceived.Keys)
+            {
+                nodes.AppendFormat("{0},", key);
+            }
+
+            // we have a majority
+            this.Logger.DebugFormat("I am your leader by {0}.", nodes);
+            this.Node.SwitchTo(NodeStatus.Leader);
         }
     }
 }
