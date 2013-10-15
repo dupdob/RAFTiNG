@@ -53,7 +53,7 @@ namespace RAFTiNG.Tests.Unit
                         leader.Initialize();
                         const int MaxDelay = 3000;
                         var initIndex = this.WaitForLogSynchro(MaxDelay, middleware, leader);
-                        Check.That(initIndex).IsEqualTo(1);
+                        Check.That(initIndex).IsEqualTo(2);
                     }
                 }
             }
@@ -79,7 +79,7 @@ namespace RAFTiNG.Tests.Unit
                         leader.Initialize();
                         const int MaxDelay = 3000;
                         var initIndex = this.WaitForLogSynchro(MaxDelay, middleware, leader);
-                        Check.That(initIndex).IsEqualTo(2);
+                        Check.That(initIndex).IsEqualTo(3);
 
                         // let sometime for the leader to commit entries
                         Thread.Sleep(50);
@@ -118,7 +118,7 @@ namespace RAFTiNG.Tests.Unit
                 if (message is AppendEntries<string>)
                 {
                     var appendMessage = message as AppendEntries<string>;
-                    if (appendMessage.PrevLogIndex != initIndex)
+                    if (appendMessage.PrevLogIndex != initIndex-1)
                     {
                         middleware.SendMessage("1", new AppendEntriesAck("2", 0, false));
                     }

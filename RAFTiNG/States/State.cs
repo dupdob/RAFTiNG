@@ -35,6 +35,8 @@ namespace RAFTiNG.States
 
         #endregion
 
+        #region constructor
+
         /// <summary>
         /// Initializes a new instance of the <see cref="State{T}"/> class.
         /// </summary>
@@ -43,6 +45,8 @@ namespace RAFTiNG.States
         {
             this.Node = node;
         }
+
+        #endregion
 
         #region properties
 
@@ -68,6 +72,8 @@ namespace RAFTiNG.States
 
         #endregion
 
+        #region methods
+
         internal abstract void EnterState();
 
         internal abstract void ProcessVoteRequest(RequestVote request);
@@ -88,7 +94,9 @@ namespace RAFTiNG.States
 
         internal virtual void ProcessAppendEntriesAck(AppendEntriesAck appendEntriesAck)
         {
-            this.Logger.WarnFormat("Received ProcessAppendEntriesAck but I am not a leader, discarded: {0}", appendEntriesAck);
+            this.Logger.WarnFormat(
+                "Received ProcessAppendEntriesAck but I am not a leader, discarded: {0}",
+                appendEntriesAck);
         }
 
         protected void ResetTimeout(double randomPart = 0.0, double fixPart = 1.0)
@@ -100,7 +108,7 @@ namespace RAFTiNG.States
 
             if (this.HeartBeatTimer != null)
             {
-                this.HeartBeatTimer.Dispose();                
+                this.HeartBeatTimer.Dispose();
             }
 
             int timeout;
@@ -110,9 +118,9 @@ namespace RAFTiNG.States
                     (int)
                     (((seed.NextDouble() * randomPart * 2.0) + (fixPart - randomPart))
                      * this.Node.TimeOutInMs);
-                if (timeout < 0)
+                if (timeout <= 1)
                 {
-                    timeout = 0;
+                    timeout = 1;
                 }
 
                 this.Logger.DebugFormat("Set timeout to {0} ms.", timeout);
@@ -133,5 +141,7 @@ namespace RAFTiNG.States
         {
             this.Node.Sequence(() => this.HeartbeatTimeouted(state));
         }
+
+        #endregion
     }
 }
