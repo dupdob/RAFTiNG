@@ -123,12 +123,18 @@ namespace RAFTiNG.States
                     timeout = 1;
                 }
 
-                this.Logger.DebugFormat("Set timeout to {0} ms.", timeout);
+                if (this.Logger.IsDebugEnabled)
+                {
+                    this.Logger.DebugFormat("Set timeout to {0} ms.", timeout);
+                }
             }
             else
             {
                 timeout = this.Node.TimeOutInMs;
-                this.Logger.Debug("Set timeout to infinite.");
+                if (this.Logger.IsDebugEnabled)
+                {
+                    this.Logger.Debug("Set timeout to infinite.");
+                }
             }
 
             this.HeartBeatTimer = new Timer(

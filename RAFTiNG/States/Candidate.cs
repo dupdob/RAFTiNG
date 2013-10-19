@@ -52,7 +52,11 @@ namespace RAFTiNG.States
             this.RegisterVote(new GrantVote(true, candidateId, nextTerm));
             
             // send vote request
-            this.Logger.TraceFormat("Broadcast a vote request");
+            if (this.Logger.IsTraceEnabled())
+            {
+                this.Logger.TraceFormat("Broadcast a vote request");
+            }
+
             var request = new RequestVote(nextTerm, candidateId, this.Node.State.LastPersistedIndex, this.Node.State.LastPersistedTerm);
             this.Node.SendToOthers(request);
             this.ResetTimeout(.3);
@@ -63,12 +67,15 @@ namespace RAFTiNG.States
             var currentTerm = this.CurrentTerm;
             if (request.Term > currentTerm)
             {
-                this.Logger.DebugFormat(
-                    "Received vote request from node with higher term ({0}'s term is {1}, our {2}). Resigning.",
-                    request.CandidateId,
-                    request.Term,
-                    currentTerm);
-
+                if (this.Logger.IsDebugEnabled)
+                {
+                    this.Logger.DebugFormat(
+                        "Received vote request from node with higher term ({0}'s term is {1}, our {2}). Resigning.",
+                        request.CandidateId,
+                        request.Term,
+                        currentTerm);
+                }
+                
                 // we step down
                 this.Node.SwitchToAndProcessMessage(NodeStatus.Follower, request);
                 return;
@@ -78,7 +85,12 @@ namespace RAFTiNG.States
             {
                 // requesting a vote for a node that has less recent information
                 // we decline
-                this.Logger.TraceFormat("Received a vote request from a node with a lower term. We decline {0}", request);
+                if (this.Logger.IsTraceEnabled())
+                {
+                    this.Logger.TraceFormat(
+                        "Received a vote request from a node with a lower term. We decline {0}",
+                        request);
+                }
             }
             else
             {
@@ -92,7 +104,13 @@ namespace RAFTiNG.States
                 else */
                 {
                     // we step down
-                    this.Logger.DebugFormat("Received a vote request from a node with more information. We step down. Message: {0}.", request);
+                    if (this.Logger.IsDebugEnabled)
+                    {
+                        this.Logger.DebugFormat(
+                            "Received a vote request from a node with more information. We step down. Message: {0}.",
+                            request);
+                    }
+
                     this.Node.SwitchToAndProcessMessage(NodeStatus.Follower, request);
                     return;
                 }
@@ -107,7 +125,13 @@ namespace RAFTiNG.States
             if (vote.VoterTerm > this.CurrentTerm)
             {
                 this.Node.State.CurrentTerm = vote.VoterTerm;
-                this.Logger.DebugFormat("Received a vote from a node with a higher term. Dropping candidate status down. Message discarded {0}.", vote);
+                if (this.Logger.IsDebugEnabled)
+                {
+                    this.Logger.DebugFormat(
+                        "Received a vote from a node with a higher term. Dropping candidate status down. Message discarded {0}.",
+                        vote);
+                }
+
                 this.Node.SwitchTo(NodeStatus.Follower);
                 return;
             }
@@ -115,11 +139,15 @@ namespace RAFTiNG.States
             if (this.voteReceived.ContainsKey(vote.VoterId))
             {
                 // we already received a vote from the voter!
-                this.Logger.WarnFormat(
-                    "We received a second vote from {0}. Initial vote: {1}. Second vote: {2}.",
-                    vote.VoterId,
-                    this.voteReceived[vote.VoterId],
-                    vote);
+                if (this.Logger.IsWarnEnabled)
+                {
+                    this.Logger.WarnFormat(
+                        "We received a second vote from {0}. Initial vote: {1}. Second vote: {2}.",
+                        vote.VoterId,
+                        this.voteReceived[vote.VoterId],
+                        vote);
+                }
+
                 return;
             }
 
@@ -130,12 +158,22 @@ namespace RAFTiNG.States
         {
             if (appendEntries.LeaderTerm >= this.CurrentTerm)
             {
-                Logger.InfoFormat("Received AppendEntries from a probable leader, stepping down ({0}).", appendEntries);
+                if (this.Logger.IsInfoEnabled)
+                {
+                    this.Logger.InfoFormat(
+                        "Received AppendEntries from a probable leader, stepping down ({0}).",
+                        appendEntries);
+                }
+
                 this.Node.SwitchToAndProcessMessage(NodeStatus.Follower, appendEntries);
             }
             else
             {
-                Logger.DebugFormat("Received AppendEntries from an invalid leader, refusing.");
+                if (this.Logger.IsDebugEnabled)
+                {
+                    Logger.DebugFormat("Received AppendEntries from an invalid leader, refusing.");
+                }
+
                 var reply = new AppendEntriesAck(this.Node.Id, this.CurrentTerm, false);
                 this.Node.SendMessage(appendEntries.LeaderId, reply);
             }
@@ -143,7 +181,7 @@ namespace RAFTiNG.States
 
         protected override void HeartbeatTimeouted(object state)
         {
-            if (this.voteReceived.Count == this.Node.Settings.Nodes.Length)
+            if (this.voteReceived.Count == this.Node.Settings.Nodes.Length && this.Logger.IsDebugEnabled)
             {
                 this.Logger.DebugFormat("We got all votes back, but I am not elected.");
             }
@@ -171,7 +209,11 @@ namespace RAFTiNG.States
             }
 
             // we have a majority
-            this.Logger.DebugFormat("I am your leader by {0}.", nodes);
+            if (this.Logger.IsInfoEnabled)
+            {
+                this.Logger.InfoFormat("I am your leader by {0}.", nodes);
+            }
+
             this.Node.SwitchTo(NodeStatus.Leader);
         }
     }

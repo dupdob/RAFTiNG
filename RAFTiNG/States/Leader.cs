@@ -54,11 +54,14 @@ namespace RAFTiNG.States
         {
             if (request.Term > this.CurrentTerm)
             {
-                this.Logger.DebugFormat(
-                    "Received a vote request from a node with a higher term ({0}'s term is {1}, our {2}). Stepping down and process vote.",
-                    request.CandidateId,
-                    request.Term,
-                    this.Node.State.CurrentTerm);
+                if (this.Logger.IsDebugEnabled)
+                {
+                    this.Logger.DebugFormat(
+                        "Received a vote request from a node with a higher term ({0}'s term is {1}, our {2}). Stepping down and process vote.",
+                        request.CandidateId,
+                        request.Term,
+                        this.Node.State.CurrentTerm);
+                }
 
                 // we step down
                 this.Node.SwitchToAndProcessMessage(NodeStatus.Follower, request);
@@ -67,9 +70,13 @@ namespace RAFTiNG.States
 
             // requesting a vote for a node that has less recent information
             // we decline
-            this.Logger.TraceFormat(
-                "Received a vote request from a node with a lower term, we refuse (Msg : {0})",
-                request);
+            if (this.Logger.IsTraceEnabled())
+            {
+                this.Logger.TraceFormat(
+                    "Received a vote request from a node with a lower term, we refuse (Msg : {0})",
+                    request);
+            }
+
             var response = new GrantVote(false, this.Node.Id, this.CurrentTerm);
 
             // send back the response
@@ -79,9 +86,11 @@ namespace RAFTiNG.States
         // process vote
         internal override void ProcessVote(GrantVote vote)
         {
-            this.Logger.TraceFormat(
-                "Received a vote but we are no longer interested: {0}",
-                vote);
+            if (this.Logger.IsTraceEnabled())
+            {
+                this.Logger.TraceFormat(
+                    "Received a vote but we are no longer interested: {0}", vote);
+            }
         }
 
         // process appendentries
@@ -89,12 +98,22 @@ namespace RAFTiNG.States
         {
             if (appendEntries.LeaderTerm >= this.CurrentTerm)
             {
-                Logger.InfoFormat("Received AppendEntries from a probable leader, stepping down.");
+                if (this.Logger.IsInfoEnabled)
+                {
+                    this.Logger.InfoFormat(
+                        "Received AppendEntries from a probable leader, stepping down.");
+                }
+
                 this.Node.SwitchToAndProcessMessage(NodeStatus.Follower, appendEntries);
                 return;
             }
 
-            this.Logger.DebugFormat("Received AppendEntries from an invalid leader, refusing ({0}).", appendEntries);
+            if (this.Logger.IsDebugEnabled)
+            {
+                this.Logger.DebugFormat(
+                    "Received AppendEntries from an invalid leader, refusing ({0}).", appendEntries);
+            }
+
             var reply = new AppendEntriesAck(this.Node.Id, this.CurrentTerm, false);
             this.Node.SendMessage(appendEntries.LeaderId, reply);
         }
@@ -104,10 +123,18 @@ namespace RAFTiNG.States
         // update commit index
         internal override void ProcessAppendEntriesAck(AppendEntriesAck appendEntriesAck)
         {
-            this.Logger.TraceFormat("Received AppendEntriesAck ({0}).", appendEntriesAck);
+            if (this.Logger.IsTraceEnabled())
+            {
+                this.Logger.TraceFormat("Received AppendEntriesAck ({0}).", appendEntriesAck);
+            }
+
             if (appendEntriesAck.Term > this.CurrentTerm)
             {
-                this.Logger.DebugFormat("Term is higher, I resign.");
+                if (this.Logger.IsDebugEnabled)
+                {
+                    this.Logger.DebugFormat("Term is higher, I resign.");
+                }
+
                 this.Node.SwitchTo(NodeStatus.Follower);
                 return;
             }
@@ -146,7 +173,10 @@ namespace RAFTiNG.States
             if (this.Node.State.CommitIndex < commitIndex)
             {
                 this.Node.State.CommitIndex = commitIndex;
-                Logger.TraceFormat("Commit index is now {0}.", this.Node.State.CommitIndex);
+                if (this.Logger.IsTraceEnabled())
+                {
+                    this.Logger.TraceFormat("Commit index is now {0}.", this.Node.State.CommitIndex);
+                }
             }
         }
 
@@ -204,9 +234,8 @@ namespace RAFTiNG.States
             {
                 this.maxDelay = maxDelay;
                 this.minSynchronizedIndex = logSize - 1;
-                this.lastSentMessageTime = DateTime.Now;
-                this.logger =
-                    LogManager.GetLogger(
+                this.lastSentMessageTime = DateTime.MinValue;
+                this.logger = LogManager.GetLogger(
                         string.Format("{0}(Replicator for {1})", master.Logger.Name, nodeId));
             }
 
@@ -276,7 +305,12 @@ namespace RAFTiNG.States
 
                 message.Entries = new LogEntry<T>[entriesToSend];
                 var offset = this.minSynchronizedIndex + 1;
-                this.logger.TraceFormat("Replicating {0} entries starting at {1}.", entriesToSend, offset);
+                if (this.logger.IsTraceEnabled())
+                {
+                    this.logger.TraceFormat(
+                        "Replicating {0} entries starting at {1}.", entriesToSend, offset);
+                }
+
                 for (var i = 0; i < entriesToSend; i++)
                 {
                     message.Entries[i] = log[i + offset];

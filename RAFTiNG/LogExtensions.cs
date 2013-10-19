@@ -35,5 +35,17 @@ namespace RAFTiNG
          {
              logger.Logger.Log(MethodBase.GetCurrentMethod().DeclaringType, Level.Trace, string.Format(format, formatItems), null);
          }
+
+         /// <summary>
+         /// Determines whether [is trace enabled] [the specified logger].
+         /// </summary>
+         /// <param name="logger">The logger.</param>
+         /// <returns>
+         ///   <c>true</c> if trace is enabled for the specified logger; otherwise, <c>false</c>.
+         /// </returns>
+        public static bool IsTraceEnabled(this ILog logger)
+        {
+            return logger.Logger.IsEnabledFor(Level.Trace);
+        }
     }
 }

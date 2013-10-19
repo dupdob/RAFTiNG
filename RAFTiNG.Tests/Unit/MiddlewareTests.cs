@@ -66,7 +66,7 @@ namespace RAFTiNG.Tests.Unit
         public void CheckThatMessageIsReceived()
         {
             this.lastMessage = null;
-            var test = new Middleware();
+            var test = new Middleware(false);
 
             test.RegisterEndPoint("point", this.MessageReceived);
             var newMessage = new object();
@@ -78,10 +78,10 @@ namespace RAFTiNG.Tests.Unit
         [Test]
         public void CheckThatExceptionsAreFiltered()
         {
-            var test = new Middleware();
+            var test = new Middleware(false);
 
             test.RegisterEndPoint("test", x => { throw new Exception(); });
-            Check.That(test.SendMessage("test", 1)).IsFalse();
+            Check.That( ()=> test.SendMessage("test", 1)).DoesNotThrow();
         }
 
         private void MessageReceived(object message)

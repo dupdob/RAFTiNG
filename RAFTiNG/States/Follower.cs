@@ -46,16 +46,23 @@ namespace RAFTiNG.States
             {
                 // requesting a vote for a node that has less recent information
                 // we decline
-                this.Logger.TraceFormat("Vote request from node with lower term. Declined {0}.", request);
+                if (this.Logger.IsTraceEnabled())
+                {
+                    this.Logger.TraceFormat("Vote request from node with lower term. Declined {0}.", request);
+                }
+
                 vote = false;
             }
             else
             {
                 if (request.Term > currentTerm)
                 {
-                    this.Logger.DebugFormat(
-                        "Vote request from node with higher term. Updating our term. {0}",
-                        request);
+                    if (this.Logger.IsDebugEnabled)
+                    {
+                        this.Logger.DebugFormat(
+                            "Vote request from node with higher term. Updating our term. {0}",
+                            request);
+                    }
 
                     // we need to upgrade our term
                     this.Node.State.CurrentTerm = request.Term;
@@ -66,13 +73,23 @@ namespace RAFTiNG.States
                 {
                     // our log is better than the candidate's
                     vote = false;
-                    this.Logger.TraceFormat("Vote request from node with less information. We do not vote. Message: {0}.", request);
+                    if (this.Logger.IsTraceEnabled())
+                    {
+                        this.Logger.TraceFormat(
+                            "Vote request from node with less information. We do not vote. Message: {0}.",
+                            request);
+                    }
                 }
                 else if (string.IsNullOrEmpty(this.Node.State.VotedFor)
                     || this.Node.State.VotedFor == request.CandidateId)
                 {
                     // grant vote
-                    this.Logger.TraceFormat("We do vote for node {1}. Message: {0}.", request, request.CandidateId);
+                    if (this.Logger.IsTraceEnabled())
+                    {
+                        this.Logger.TraceFormat(
+                            "We do vote for node {1}. Message: {0}.", request, request.CandidateId);
+                    }
+
                     vote = true;
                     this.Node.State.VotedFor = request.CandidateId;
                     
@@ -83,7 +100,11 @@ namespace RAFTiNG.States
                 {
                     // we already voted for someone
                     vote = false;
-                    this.Logger.TraceFormat("We already voted. We do not grant vote. Message: {0}.", request);
+                    if (this.Logger.IsTraceEnabled())
+                    {
+                        this.Logger.TraceFormat(
+                            "We already voted. We do not grant vote. Message: {0}.", request);
+                    }
                 }
             }
             
@@ -93,8 +114,11 @@ namespace RAFTiNG.States
 
         internal override void ProcessVote(GrantVote vote)
         {
-            this.Logger.WarnFormat(
-                "Received a vote but I am a follower. Message discarded: {0}.", vote);
+            if (this.Logger.IsDebugEnabled)
+            {
+                this.Logger.DebugFormat(
+                    "Received a vote but I am a follower. Message discarded: {0}.", vote);
+            }
         }
 
         internal override void ProcessAppendEntries(AppendEntries<T> appendEntries)
@@ -105,28 +129,47 @@ namespace RAFTiNG.States
                 this.Node.LeaderId = appendEntries.LeaderId;
                 if (appendEntries.LeaderTerm > this.CurrentTerm)
                 {
-                    Logger.TraceFormat("Upgrade our term to {0}.", this.CurrentTerm);
+                    if (this.Logger.IsTraceEnabled())
+                    {
+                        Logger.TraceFormat("Upgrade our term to {0}.", this.CurrentTerm);
+                    }
+
                     this.Node.State.CurrentTerm = appendEntries.LeaderTerm;
                 }
 
                 if (this.Node.State.EntryMatches(
                     appendEntries.PrevLogIndex, appendEntries.PrevLogTerm))
                 {
-                    Logger.TraceFormat("Process an AppendEntries request: {0}", appendEntries);
+                    if (this.Logger.IsTraceEnabled())
+                    {
+                        Logger.TraceFormat("Process an AppendEntries request: {0}", appendEntries);
+                    }
+
                     this.Node.State.AppendEntries(appendEntries.PrevLogIndex, appendEntries.Entries);
                     result = true;
                 }
                 else
                 {
                     // leader is older than us or log does not match
-                    Logger.DebugFormat("Reject an AppendEntries that does not match our log ({0}).", appendEntries);
+                    if (this.Logger.IsDebugEnabled)
+                    {
+                        Logger.DebugFormat(
+                            "Reject an AppendEntries that does not match our log ({0}).",
+                            appendEntries);
+                    }
+
                     result = false;
                 }
             }
             else
             {
                 // leader is older than us or log does not match
-                Logger.DebugFormat("Reject an AppendEntries from an invalid leader ({0}).", appendEntries);
+                if (this.Logger.IsDebugEnabled)
+                {
+                    Logger.DebugFormat(
+                        "Reject an AppendEntries from an invalid leader ({0}).", appendEntries);
+                }
+
                 result = false;
             }
 
@@ -143,7 +186,11 @@ namespace RAFTiNG.States
                 return;
             }
 
-            this.Logger.Info("Timeout elapsed without sign from current leader. Trigger an election.");
+            if (this.Logger.IsInfoEnabled)
+            {
+                this.Logger.Info(
+                    "Timeout elapsed without sign from current leader. Trigger an election.");
+            }
 
             // heartBeat timeout, we will trigger an election.
             this.Node.SwitchTo(NodeStatus.Candidate);

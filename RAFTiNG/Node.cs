@@ -157,7 +157,11 @@ namespace RAFTiNG
                 throw new InvalidOperationException("Node is already initialized.");
             }
 
-            this.logger.InfoFormat("Middleware registration to address {0}.", this.Id);
+            if (this.logger.IsInfoEnabled)
+            {
+                this.logger.InfoFormat("Middleware registration to address {0}.", this.Id);
+            }
+
             this.internalMiddleware.RegisterEndPoint(this.Id, this.MessageReceived);
             if (this.settings.OtherNodes().Count == 0)
             {
@@ -183,7 +187,11 @@ namespace RAFTiNG
         /// </summary>
         public void Dispose()
         {
-            this.logger.Info("Stopping Node.");
+            if (this.logger.IsInfoEnabled)
+            {
+                this.logger.Info("Stopping Node.");
+            }
+
             if (this.currentState != null)
             {
                 this.currentState.ExitState();
@@ -276,9 +284,11 @@ namespace RAFTiNG
         /// <param name="message">Message to be broadcasted.</param>
         internal void SendToOthers(object message)
         {
-            this.logger.TraceFormat("Broadcast message to all other nodes: {0}", message);
-
             // send request to all nodes
+            if (this.logger.IsTraceEnabled())
+            {
+                this.logger.TraceFormat("Broadcast message to all other nodes: {0}", message);
+            }
             foreach (var otherNode in this.settings.OtherNodes())
             {
                 this.internalMiddleware.SendMessage(otherNode, message);
@@ -349,7 +359,11 @@ namespace RAFTiNG
         {
             if (this.currentState == null)
             {
-                this.Logger.DebugFormat("Node is not active, discarding message ({0}).", obj);
+                if (this.logger.IsDebugEnabled)
+                {
+                    this.Logger.DebugFormat("Node is not active, discarding message ({0}).", obj);
+                }
+
                 return;
             }
 

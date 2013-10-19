@@ -274,7 +274,7 @@ namespace RAFTiNG.Tests.Unit
         // helper to initilize setip
         private Middleware InitNodes(out Node<string> node)
         {
-            var middleware = new Middleware();
+            var middleware = new Middleware(false);
             var settings = Helpers.BuildNodeSettings("1", new[] { "1", "2", "3", "4", "5" });
             settings.TimeoutInMs = Timeout.Infinite; // no timeout
             node = new Node<string>(settings, middleware);

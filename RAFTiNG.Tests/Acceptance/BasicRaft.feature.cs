@@ -170,7 +170,7 @@ this.ScenarioSetup(scenarioInfo);
 #line 39
  testRunner.When("I start all instances", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
 #line 40
- testRunner.And("I wait 1 second", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+ testRunner.And("I wait 5 second", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
 #line 41
  testRunner.Then("there is 1 leader", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
 #line hidden

@@ -20,6 +20,7 @@ namespace RAFTiNG
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
 
     using log4net;
 
@@ -30,7 +31,32 @@ namespace RAFTiNG
     {
         private readonly Dictionary<string, Action<object>> endpoints = new Dictionary<string, Action<object>>();
 
+        private readonly Dictionary<string, Sequencer> sequencer = new Dictionary<string, Sequencer>(); 
+
         private readonly ILog logger = LogManager.GetLogger("MockMiddleware");
+
+        private readonly bool asyncMode;
+
+        private readonly MessageRuner runner;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Middleware"/> class.
+        /// </summary>
+        /// <param name="asyncMode">if set to <c>true</c> middleware is async mode.</param>
+        public Middleware(bool asyncMode = true)
+        {
+            this.asyncMode = asyncMode;
+            if (this.asyncMode)
+            {
+                this.runner = this.Async;
+            }
+            else
+            {
+                this.runner = this.Sync;
+            }
+        }
+
+        private delegate void MessageRuner(WaitCallback action);
 
         /// <summary>
         /// Sends a message to a specific address.
@@ -43,18 +69,20 @@ namespace RAFTiNG
         {
             if (this.endpoints.ContainsKey(addressDest))
             {
-                try
-                {
-                    this.endpoints[addressDest].Invoke(message);
-                }
-                catch (Exception e)
-                {
-                    this.logger.Error("Exception raised when processing message.", e);
-
-                    // exceptions must not cross middleware boundaries
-                    return false;
-                }
-
+                    this.runner(
+                        _ =>
+                            {
+                                try
+                                {
+                                    this.sequencer[addressDest].Sequence(
+                                        () => this.endpoints[addressDest].Invoke(message));
+                                }
+                                catch (Exception e)
+                                {
+                                    // exceptions must not cross middleware boundaries
+                                    this.logger.Error("Exception raised when processing message.", e);
+                                }
+                            });
                 return true;
             }
 
@@ -86,6 +114,17 @@ namespace RAFTiNG
             }
 
             this.endpoints[address] = messageReceived;
+            this.sequencer[address] = new Sequencer();
+        }
+
+        private void Async(WaitCallback action)
+        {
+            ThreadPool.QueueUserWorkItem(action);
+        }
+
+        private void Sync(WaitCallback action)
+        {
+            action(null);
         }
     }
 }
