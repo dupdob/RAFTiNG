@@ -294,15 +294,7 @@ namespace RAFTiNG.States
 
                 this.flyingTransaction = true;
                 var message = new AppendEntries<T> { PrevLogIndex = this.minSynchronizedIndex };
-                try
-                {
-                    message.PrevLogTerm = this.minSynchronizedIndex < 0 ? -1 : log[this.minSynchronizedIndex].Term;
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                }
-
+                message.PrevLogTerm = this.minSynchronizedIndex < 0 ? -1 : log[this.minSynchronizedIndex].Term;
                 message.Entries = new LogEntry<T>[entriesToSend];
                 var offset = this.minSynchronizedIndex + 1;
                 if (this.logger.IsTraceEnabled())
