@@ -108,14 +108,6 @@ namespace RAFTiNG
         /// </summary>
         public IList<LogEntry<T>> LogEntries { get; private set; }
 
-        /// <summary>
-        /// Gets or sets the index of the commit.
-        /// </summary>
-        /// <value>
-        /// The index of the commit.
-        /// </value>
-        public int CommitIndex { get; set; }
-
         #endregion
 
         #region methods

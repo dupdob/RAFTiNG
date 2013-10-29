@@ -124,53 +124,40 @@ namespace RAFTiNG.States
         internal override void ProcessAppendEntries(AppendEntries<T> appendEntries)
         {
             bool result;
-            if (appendEntries.LeaderTerm >= this.CurrentTerm)
+            if (appendEntries.LeaderTerm < this.CurrentTerm)
             {
+                // leader is older than us or log does not match
+                this.Logger.DebugFormat(
+                    "Reject an AppendEntries from an invalid leader ({0}).", appendEntries);
+                result = false;
+            }
+            else
+            {
+                // we will proceed 
                 this.Node.LeaderId = appendEntries.LeaderId;
                 if (appendEntries.LeaderTerm > this.CurrentTerm)
                 {
-                    if (this.Logger.IsTraceEnabled())
-                    {
-                        Logger.TraceFormat("Upgrade our term to {0}.", this.CurrentTerm);
-                    }
-
+                    this.Logger.TraceFormat("Upgrade our term to {0}.", this.CurrentTerm);
                     this.Node.State.CurrentTerm = appendEntries.LeaderTerm;
                 }
 
                 if (this.Node.State.EntryMatches(
                     appendEntries.PrevLogIndex, appendEntries.PrevLogTerm))
                 {
-                    if (this.Logger.IsTraceEnabled())
-                    {
-                        Logger.TraceFormat("Process an AppendEntries request: {0}", appendEntries);
-                    }
-
+                    this.Logger.TraceFormat(
+                        "Process an AppendEntries request: {0}", appendEntries);
                     this.Node.State.AppendEntries(appendEntries.PrevLogIndex, appendEntries.Entries);
+                    this.Node.Commit(appendEntries.CommitIndex);
                     result = true;
                 }
                 else
                 {
-                    // leader is older than us or log does not match
-                    if (this.Logger.IsDebugEnabled)
-                    {
-                        Logger.DebugFormat(
+                    // log does not match, we are not in sync with leader yet
+                    this.Logger.DebugFormat(
                             "Reject an AppendEntries that does not match our log ({0}).",
                             appendEntries);
-                    }
-
                     result = false;
                 }
-            }
-            else
-            {
-                // leader is older than us or log does not match
-                if (this.Logger.IsDebugEnabled)
-                {
-                    Logger.DebugFormat(
-                        "Reject an AppendEntries from an invalid leader ({0}).", appendEntries);
-                }
-
-                result = false;
             }
 
             var reply = new AppendEntriesAck(this.Node.Id, this.CurrentTerm, result);
@@ -186,11 +173,8 @@ namespace RAFTiNG.States
                 return;
             }
 
-            if (this.Logger.IsInfoEnabled)
-            {
-                this.Logger.Info(
+            this.Logger.Info(
                     "Timeout elapsed without sign from current leader. Trigger an election.");
-            }
 
             // heartBeat timeout, we will trigger an election.
             this.Node.SwitchTo(NodeStatus.Candidate);

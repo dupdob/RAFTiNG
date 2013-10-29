@@ -54,7 +54,7 @@ namespace RAFTiNG.States
             // send vote request
             if (this.Logger.IsTraceEnabled())
             {
-                this.Logger.TraceFormat("Broadcast a vote request");
+                this.Logger.TraceFormat("Broadcast a vote request for term {0}", this.CurrentTerm);
             }
 
             var request = new RequestVote(nextTerm, candidateId, this.Node.State.LastPersistedIndex, this.Node.State.LastPersistedTerm);

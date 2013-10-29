@@ -24,6 +24,7 @@ namespace RAFTiNG
 
     using RAFTiNG.Commands;
     using RAFTiNG.Messages;
+    using RAFTiNG.Services;
     using RAFTiNG.States;
 
     /// <summary>
@@ -46,6 +47,10 @@ namespace RAFTiNG
 
         private State<T> currentState;
 
+        private IStateMachine<T> stateMachine;
+
+        private int lastCommit = -1;
+
         #endregion
 
         #region constructor
@@ -58,11 +63,13 @@ namespace RAFTiNG
         /// </param>
         /// <param name="middleware">Middleware used to exchange message.
         /// </param>
-        public Node(NodeSettings settings, IMiddleware middleware)
+        /// <param name="machine">Hosted state machine.</param>
+        public Node(NodeSettings settings, IMiddleware middleware, IStateMachine<T> machine)
         {
             this.Id = settings.NodeId;
             this.settings = settings;
             this.internalMiddleware = middleware;
+            this.stateMachine = machine;
 
             this.Status = NodeStatus.Initializing;
             this.State = new PersistedState<T>();
@@ -98,7 +105,21 @@ namespace RAFTiNG
         /// Gets the persisted state.
         /// </summary>
         public PersistedState<T> State { get; private set; }
- 
+
+        /// <summary>
+        /// Gets the next commit index.
+        /// </summary>
+        /// <value>
+        /// The next commit.
+        /// </value>
+        public int LastCommit
+        {
+            get
+            {
+                return this.lastCommit;
+            }
+        }
+
         internal ILog Logger
         {
             get
@@ -165,6 +186,7 @@ namespace RAFTiNG
             this.internalMiddleware.RegisterEndPoint(this.Id, this.MessageReceived);
             if (this.settings.OtherNodes().Count == 0)
             {
+                // special case: if single now, we are the leader
                 this.SwitchTo(NodeStatus.Leader);
             }
             else
@@ -268,6 +290,23 @@ namespace RAFTiNG
             return nextTerm;
         }
 
+        internal void Commit(int newCommit)
+        {
+            if (this.lastCommit >= newCommit)
+            {
+                return;
+            }
+
+            for (var i = this.lastCommit + 1; i <= newCommit; i++)
+            {
+                this.stateMachine.Commit(this.State.LogEntries[i].Command);
+                this.Logger.TraceFormat("Committed index is {0}.", i);
+            }
+
+            this.lastCommit = newCommit;
+            this.Logger.DebugFormat("Commit index is now {0}.", this.lastCommit);
+        }
+
         /// <summary>
         /// Send message to a specific node. 
         /// </summary>
@@ -289,6 +328,7 @@ namespace RAFTiNG
             {
                 this.logger.TraceFormat("Broadcast message to all other nodes: {0}", message);
             }
+
             foreach (var otherNode in this.settings.OtherNodes())
             {
                 this.internalMiddleware.SendMessage(otherNode, message);

@@ -24,6 +24,7 @@ namespace RAFTiNG.Tests.Unit
     using NUnit.Framework;
 
     using RAFTiNG.Messages;
+    using RAFTiNG.Tests.Services;
 
     [TestFixture]
     public class LogReplicationTest
@@ -41,7 +42,7 @@ namespace RAFTiNG.Tests.Unit
                 var settings = Helpers.BuildNodeSettings("1", new[] { "1", "2" });
                 settings.TimeoutInMs = 10;
 
-                using (var leader = new Node<string>(settings, middleware))
+                using (var leader = new Node<string>(settings, middleware, new StateMachine()))
                 {
                     // we inject
                     leader.State.AppendEntries(
@@ -68,22 +69,22 @@ namespace RAFTiNG.Tests.Unit
                 var settings = Helpers.BuildNodeSettings("1", new[] { "1", "2" });
                 settings.TimeoutInMs = 1;
 
-                using (var leader = new Node<string>(settings, middleware))
+                using (var leader = new Node<string>(settings, middleware, new StateMachine()))
                 {
                     // we inject
                     leader.State.AppendEntries(-1, new[] { new LogEntry<string>("one"), new LogEntry<string>("two"), new LogEntry<string>("3") });
 
-                    middleware.RegisterEndPoint("2", obj => this.OnMessage(obj));
+                    middleware.RegisterEndPoint("2", this.OnMessage);
                     lock (this.synchro)
                     {
                         leader.Initialize();
-                        const int MaxDelay = 3000;
+                        const int MaxDelay = 300000;
                         var initIndex = this.WaitForLogSynchro(MaxDelay, middleware, leader);
                         Check.That(initIndex).IsEqualTo(3);
 
                         // let sometime for the leader to commit entries
                         Thread.Sleep(50);
-                        Check.That(leader.State.CommitIndex).IsEqualTo(2);
+                        Check.That(leader.LastCommit).IsEqualTo(2);
                     }
                 }
             }

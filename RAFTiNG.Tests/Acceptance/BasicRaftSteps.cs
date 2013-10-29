@@ -27,6 +27,8 @@ namespace RAFTiNG.Tests
 
     using NFluent;
 
+    using RAFTiNG.Tests.Services;
+
     using TechTalk.SpecFlow;
     
     public class RaftingInfra: IDisposable
@@ -34,6 +36,8 @@ namespace RAFTiNG.Tests
         public Middleware Middleware { get; set; }
 
         public List<Node<string>> Nodes { get; set; }
+
+        internal StateMachine Machine { get; set; }
 
         private IDisposable logHandle;
 
@@ -43,6 +47,7 @@ namespace RAFTiNG.Tests
         public RaftingInfra()
         {
             logHandle = Helpers.InitLog4Net();
+            Machine = new StateMachine();
         }
 
         /// <summary>
@@ -91,7 +96,7 @@ namespace RAFTiNG.Tests
             for (var i = 0; i < p0; i++)
             {
                 settings.NodeId = names[i];
-                var node = new Node<string>(settings, this.infra.Middleware);
+                var node = new Node<string>(settings, this.infra.Middleware, this.infra.Machine);
                 this.infra.Nodes.Add(node);
             }
             run++;

@@ -12,12 +12,12 @@
 //   limitations under the License.
 // </copyright>
 // <summary>
-//   
+//   Implements various tests validating the basic of noce behavior
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
-
 namespace RAFTiNG.Tests.Unit
 {
+    using System.Diagnostics.CodeAnalysis;
     using System.Threading;
 
     using NFluent;
@@ -25,48 +25,46 @@ namespace RAFTiNG.Tests.Unit
     using NUnit.Framework;
 
     using RAFTiNG.Messages;
+    using RAFTiNG.Tests.Services;
 
+    [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1600:ElementsMustBeDocumented", 
+        Justification = "Reviewed. Suppression is OK here.")]
     [TestFixture]
     public class BasicNodeTest
     {
-        private object lastMessage;
+        #region Fields
+
         private readonly object synchro = new object();
 
-        private PersistedState<string> BuildLog(int entries)
-        {
-            var test = new PersistedState<string>();
+        private object lastMessage;
 
-            for (var i = 0; i < entries; i++)
-            {
-                test.AddEntry(new LogEntry<string>("dummy"));
-            }
-            return test;
-        }
+        #endregion
 
-       [Test]
+        #region Public Methods and Operators
+
+        [Test]
         public void DefaultNodeStateIsOk()
         {
-            var settings = Helpers.BuildNodeSettings("1", new string[] { "2", "3", "4" });
-            using (var node = new Node<string>(settings, new Middleware()))
-           {
+            var settings = Helpers.BuildNodeSettings("1", new[] { "2", "3", "4" });
+            using (var node = new Node<string>(settings, new Middleware(), new StateMachine()))
+            {
+                Check.ThatEnum(node.Status).IsEqualTo(NodeStatus.Initializing);
 
-               Check.ThatEnum(node.Status).IsEqualTo(NodeStatus.Initializing);
+                Check.That(node.State.CurrentTerm).IsEqualTo(0L);
 
-               Check.That(node.State.CurrentTerm).IsEqualTo(0L);
+                Check.That(node.State.VotedFor).IsNullOrEmpty();
 
-               Check.That(node.State.VotedFor).IsNullOrEmpty();
-
-               Check.That(node.State.LogEntries).IsEmpty();
-           }
+                Check.That(node.State.LogEntries).IsEmpty();
+            }
         }
 
         [Test]
         public void NodeInitStartsTheAgent()
         {
-            var settings = Helpers.BuildNodeSettings("1", new string[] { "1", "2", "3", "4", "5" });
+            var settings = Helpers.BuildNodeSettings("1", new[] { "1", "2", "3", "4", "5" });
             settings.TimeoutInMs = 10;
 
-            using (var node = new Node<string>(settings, new Middleware()))
+            using (var node = new Node<string>(settings, new Middleware(), new StateMachine()))
             {
                 node.Initialize();
 
@@ -75,12 +73,48 @@ namespace RAFTiNG.Tests.Unit
         }
 
         [Test]
+        public void NodeStaysAFollowerWhenReceiveAppendEntries()
+        {
+            using (Helpers.InitLog4Net())
+            {
+                var settings = Helpers.BuildNodeSettings("1", new[] { "1", "2", "3", "4", "5" });
+                settings.TimeoutInMs = 20;
+                var middleware = new Middleware();
+                var node = new Node<string>(settings, middleware, new StateMachine());
+
+                using (node)
+                {
+                    node.Initialize();
+
+                    // should switch to candidate
+                    Check.That(this.WaitState(node, NodeStatus.Candidate, 30)).IsTrue();
+
+                    // now we pretend there is a leader
+                    var message = new AppendEntries<string>
+                                      {
+                                          LeaderId = "2", 
+                                          LeaderTerm = 5, 
+                                          PrevLogIndex = -1, 
+                                          PrevLogTerm = 0
+                                      };
+
+                    var entry = new LogEntry<string>("dummy", 1L);
+                    message.Entries = new[] { entry };
+                    middleware.SendMessage("1", message);
+                    Check.That(this.WaitState(node, NodeStatus.Follower, 30)).IsTrue();
+
+                    Check.That(node.State.LogEntries.Count).IsEqualTo(1);
+                }
+            }
+        }
+
+        [Test]
         public void NodeSwitchesToCandidate()
         {
-            var settings = Helpers.BuildNodeSettings("1", new string[] { "1", "2", "3", "4", "5" });
+            var settings = Helpers.BuildNodeSettings("1", new[] { "1", "2", "3", "4", "5" });
             settings.TimeoutInMs = 10;
 
-            using (var node = new Node<string>(settings, new Middleware()))
+            using (var node = new Node<string>(settings, new Middleware(), new StateMachine()))
             {
                 node.Initialize();
                 Thread.Sleep(30);
@@ -91,60 +125,12 @@ namespace RAFTiNG.Tests.Unit
         }
 
         [Test]
-        public void NodeWithNoLogsGrantsVote()
-        {
-            Node<string> node;
-            var middleware = this.InitNodes(out node);
-
-            using (node)
-            {
-                GrantVote answer;
-                lock (this.synchro)
-                {
-                    // request a vote, and lie about our capacity
-                    middleware.SendMessage("1", new RequestVote(2, "2", 2, 2));
-
-                    if (this.lastMessage == null)
-                    {
-                        Monitor.Wait(this.synchro, 50);
-                    }
-                    Check.That(this.lastMessage).IsNotEqualTo(null).And.IsInstanceOf<GrantVote>();
-
-                    answer = this.lastMessage as GrantVote;
-                    Check.That(node.State.VotedFor).IsEqualTo("2");
-                }
-
-                // did we get the vote?
-                Check.That(answer.VoteGranted).IsTrue();
-            }
-        }
-
-        [Test]
-        public void NodeWithSameLogGrantsVote()
-        {
-            Node<string> node;
-            var middleware = this.InitNodes(out node);
-
-            using (node)
-            {
-                // now, add entries
-                node.AddEntry("dummy");
-
-                node.State.CurrentTerm = 2;
-                node.AddEntry("dummy");
-                node.AddEntry("dummy");
-                this.RequestAndGetVote(middleware, node, true);
-            }
-        }
-
-        [Test]
         public void NodeWithLongerLogOlderTermGrantsVote()
         {
             Node<string> node;
             var middleware = this.InitNodes(out node);
             using (node)
             {
-
                 // now, add entries
                 node.AddEntry("dummy");
 
@@ -175,20 +161,6 @@ namespace RAFTiNG.Tests.Unit
             }
         }
 
-        private bool WaitState(Node<string> node, NodeStatus status, int waitTime)
-        {
-            int step = 10;
-            for (int delay = 0; delay < waitTime; delay += step)
-            {
-                if (node.Status == status)
-                {
-                    return true;
-                }
-                Thread.Sleep(step);
-            }
-            return node.Status == status;
-        }
-
         [Test]
         public void NodeWithMoreRescentTermDoesNotGrantVote()
         {
@@ -207,42 +179,93 @@ namespace RAFTiNG.Tests.Unit
         }
 
         [Test]
-        public void NodeStaysAFollowerWhenReceiveAppendEntries()
+        public void NodeWithNoLogsGrantsVote()
         {
-            using (Helpers.InitLog4Net())
+            Node<string> node;
+            var middleware = this.InitNodes(out node);
+
+            using (node)
             {
-                var settings = Helpers.BuildNodeSettings("1", new[] { "1", "2", "3", "4", "5" });
-                settings.TimeoutInMs = 10;
-                var middleware = new Middleware();
-                var node = new Node<string>(settings, middleware);
-
-                using (node)
+                GrantVote answer;
+                lock (this.synchro)
                 {
-                    node.Initialize();
-                    // should switch to candidate
-                    Check.That(this.WaitState(node, NodeStatus.Candidate, 30)).IsTrue();
+                    // request a vote, and lie about our capacity
+                    middleware.SendMessage("1", new RequestVote(2, "2", 2, 2));
 
-                    // now we pretend there is a leader
-                    var message = new AppendEntries<string>
-                                      {
-                                          LeaderId = "2",
-                                          LeaderTerm = 5,
-                                          PrevLogIndex = -1,
-                                          PrevLogTerm = 0
-                                      };
+                    if (this.lastMessage == null)
+                    {
+                        Monitor.Wait(this.synchro, 50);
+                    }
 
-                    var entry = new LogEntry<string>("dummy", 1L);
-                    message.Entries = new[] { entry };
-                    middleware.SendMessage("1", message);
-                    Check.That(this.WaitState(node, NodeStatus.Follower, 30)).IsTrue();
+                    Check.That(this.lastMessage).IsNotEqualTo(null).And.IsInstanceOf<GrantVote>();
 
-                    Check.That(node.State.LogEntries.Count).IsEqualTo(1);
-
+                    answer = this.lastMessage as GrantVote;
+                    Check.That(node.State.VotedFor).IsEqualTo("2");
                 }
+
+                Check.That(answer).IsDistinctFrom(null);
+                // did we get the vote?
+                Check.That(answer.VoteGranted).IsTrue();
             }
         }
 
-        // helper to send a request for vote and wait for the answer
+        [Test]
+        public void NodeWithSameLogGrantsVote()
+        {
+            Node<string> node;
+            var middleware = this.InitNodes(out node);
+
+            using (node)
+            {
+                // now, add entries
+                node.AddEntry("dummy");
+
+                node.State.CurrentTerm = 2;
+                node.AddEntry("dummy");
+                node.AddEntry("dummy");
+                this.RequestAndGetVote(middleware, node, true);
+            }
+        }
+
+        #endregion
+
+        #region Methods
+
+        private PersistedState<string> BuildLog(int entries)
+        {
+            var test = new PersistedState<string>();
+
+            for (var i = 0; i < entries; i++)
+            {
+                test.AddEntry(new LogEntry<string>("dummy"));
+            }
+
+            return test;
+        }
+
+        // helper to initilize setip
+        private Middleware InitNodes(out Node<string> node)
+        {
+            var middleware = new Middleware(false);
+            var settings = Helpers.BuildNodeSettings("1", new[] { "1", "2", "3", "4", "5" });
+            settings.TimeoutInMs = Timeout.Infinite; // no timeout
+            node = new Node<string>(settings, middleware, new StateMachine());
+
+            node.Initialize();
+
+            middleware.RegisterEndPoint("2", this.MessageReceived);
+            return middleware;
+        }
+
+        private void MessageReceived(object obj)
+        {
+            lock (this.synchro)
+            {
+                this.lastMessage = obj;
+                Monitor.Pulse(this.synchro);
+            }
+        }
+
         private void RequestAndGetVote(Middleware middleware, Node<string> node, bool succeed)
         {
             lock (this.synchro)
@@ -261,6 +284,7 @@ namespace RAFTiNG.Tests.Unit
                 if (succeed)
                 {
                     Check.That(node.State.VotedFor).IsEqualTo("2");
+
                     // did we get the vote?
                     Check.That(answer.VoteGranted).IsTrue();
                 }
@@ -271,27 +295,22 @@ namespace RAFTiNG.Tests.Unit
             }
         }
 
-        // helper to initilize setip
-        private Middleware InitNodes(out Node<string> node)
+        private bool WaitState(Node<string> node, NodeStatus status, int waitTime)
         {
-            var middleware = new Middleware(false);
-            var settings = Helpers.BuildNodeSettings("1", new[] { "1", "2", "3", "4", "5" });
-            settings.TimeoutInMs = Timeout.Infinite; // no timeout
-            node = new Node<string>(settings, middleware);
-
-            node.Initialize();
-
-            middleware.RegisterEndPoint("2", this.MessageReceived);
-            return middleware;
-        }
-
-        private void MessageReceived(object obj)
-        {
-            lock (this.synchro)
+            int step = 10;
+            for (int delay = 0; delay < waitTime; delay += step)
             {
-                this.lastMessage = obj;
-                Monitor.Pulse(this.synchro);
+                if (node.Status == status)
+                {
+                    return true;
+                }
+
+                Thread.Sleep(step);
             }
+
+            return node.Status == status;
         }
+
+        #endregion
     }
 }

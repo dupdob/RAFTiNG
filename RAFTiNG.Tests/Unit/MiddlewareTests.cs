@@ -24,6 +24,8 @@ namespace RAFTiNG.Tests.Unit
 
     using NUnit.Framework;
 
+    using RAFTiNG.Tests.Services;
+
     [TestFixture]
     public class MiddlewareTests
     {

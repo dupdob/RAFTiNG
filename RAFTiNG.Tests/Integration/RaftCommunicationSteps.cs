@@ -23,6 +23,8 @@ namespace RAFTiNG.Tests
 
     using NFluent;
 
+    using RAFTiNG.Tests.Services;
+
     using TechTalk.SpecFlow;
 
     [Binding]
@@ -40,7 +42,7 @@ namespace RAFTiNG.Tests
             this.testedNodes = new Node<string>[p0];
             for (var i = 0; i < p0; i++)
             {
-                var testedNode = new Node<string>(Helpers.BuildNodeSettings(nodeIds[i], nodeIds), middleware);
+                var testedNode = new Node<string>(Helpers.BuildNodeSettings(nodeIds[i], nodeIds), middleware, new StateMachine());
                 this.testedNodes[i] = testedNode;
                 testedNode.Initialize();
             }

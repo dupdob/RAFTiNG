@@ -17,6 +17,8 @@ namespace RAFTiNG.Tests.Unit
 {
     using NUnit.Framework;
 
+    using RAFTiNG.Tests.Services;
+
     [TestFixture]
     public class CommandApiTest
     {
@@ -24,11 +26,13 @@ namespace RAFTiNG.Tests.Unit
         public void SendCommandToASingleNode()
         {
             var middleware = new Middleware();
+            
             // have a cluster of one
             var settings = Helpers.BuildNodeSettings("1", new[] { "1" });
             settings.TimeoutInMs = 10;
-
-            var leader = new Node<string>(settings, middleware);
+            
+            // create a cluster of node, so there is no ambiguity about who is the leader
+            var leader = new Node<string>(settings, middleware, new StateMachine());
         }
     }
 }

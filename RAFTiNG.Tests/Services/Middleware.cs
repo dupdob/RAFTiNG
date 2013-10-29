@@ -16,13 +16,15 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace RAFTiNG
+namespace RAFTiNG.Tests.Services
 {
     using System;
     using System.Collections.Generic;
     using System.Threading;
 
     using log4net;
+
+    using RAFTiNG.Services;
 
     /// <summary>
     /// Middleware simulates the message middleware used by rafting nodes to communicate and synchronize

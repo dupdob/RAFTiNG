@@ -170,14 +170,7 @@ namespace RAFTiNG.States
             var ordered = this.states.Values.Select(state => state.MinSynchronizedIndex).OrderBy(value => value);
             var index = this.Node.Settings.Nodes.Length - this.Node.Settings.Majority + 1;
             var commitIndex = ordered.ElementAt(index);
-            if (this.Node.State.CommitIndex < commitIndex)
-            {
-                this.Node.State.CommitIndex = commitIndex;
-                if (this.Logger.IsTraceEnabled())
-                {
-                    this.Logger.TraceFormat("Commit index is now {0}.", this.Node.State.CommitIndex);
-                }
-            }
+            this.Node.Commit(commitIndex);
         }
 
         private void BroadcastHeartbeat()

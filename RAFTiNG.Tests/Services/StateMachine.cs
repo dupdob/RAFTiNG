@@ -1,5 +1,5 @@
 ﻿//  --------------------------------------------------------------------------------------------------------------------
-// <copyright file="ClientAPITests.cs" company="Cyrille DUPUYDAUBY">
+// <copyright file="StateMachine.cs" company="Cyrille DUPUYDAUBY">
 //   Copyright 2013 Cyrille DUPUYDAUBY
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -12,34 +12,19 @@
 //   limitations under the License.
 // </copyright>
 //  --------------------------------------------------------------------------------------------------------------------
-
-namespace RAFTiNG.Tests.Unit
+namespace RAFTiNG.Tests.Services
 {
-    using System.Threading;
+    using RAFTiNG.Services;
 
-    using NFluent;
-
-    using NUnit.Framework;
-
-    using RAFTiNG.Commands;
-    using RAFTiNG.Tests.Services;
-
-    [TestFixture]
-    public class ClientAPITests
+    internal class StateMachine : IStateMachine<string>
     {
-        [Test]
-        public void ProtocolTest()
+        /// <summary>
+        /// Commits the specified command.
+        /// </summary>
+        /// <param name="command">The command.</param>
+        public void Commit(string command)
         {
-            var settings = Helpers.BuildNodeSettings("1", new[] { "1" });
-            settings.TimeoutInMs = 5;
-            var raftMiddleware = new Middleware();
-            var node = new Node<string>(settings, raftMiddleware, new StateMachine());
-            node.Initialize();
-            Thread.Sleep(50);
-
-            Check.ThatEnum(node.Status).IsEqualTo(NodeStatus.Leader);
-
-            raftMiddleware.SendMessage("1", new SendCommand<string>("test"));
+            
         }
     }
 }
