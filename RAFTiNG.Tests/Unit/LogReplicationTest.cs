@@ -119,7 +119,7 @@ namespace RAFTiNG.Tests.Unit
                 if (message is AppendEntries<string>)
                 {
                     var appendMessage = message as AppendEntries<string>;
-                    if (appendMessage.PrevLogIndex != initIndex-1)
+                    if (appendMessage.PrevLogIndex != initIndex - 1)
                     {
                         middleware.SendMessage("1", new AppendEntriesAck("2", 0, false));
                     }

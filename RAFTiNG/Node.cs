@@ -43,11 +43,11 @@ namespace RAFTiNG
 
         private readonly IMiddleware internalMiddleware;
 
+        private readonly IStateMachine<T> stateMachine;
+
         private NodeSettings settings;
 
         private State<T> currentState;
-
-        private IStateMachine<T> stateMachine;
 
         private int lastCommit = -1;
 
@@ -129,17 +129,6 @@ namespace RAFTiNG
         }
 
         /// <summary>
-        /// Gets the timeout base value.
-        /// </summary>
-        internal int TimeOutInMs
-        {
-            get
-            {
-                return this.settings.TimeoutInMs;
-            }
-        }
-
-        /// <summary>
         /// Gets the RAFTiNG settings.
         /// </summary>
         internal NodeSettings Settings
@@ -178,11 +167,7 @@ namespace RAFTiNG
                 throw new InvalidOperationException("Node is already initialized.");
             }
 
-            if (this.logger.IsInfoEnabled)
-            {
-                this.logger.InfoFormat("Middleware registration to address {0}.", this.Id);
-            }
-
+            this.logger.InfoFormat("Middleware registration to address {0}.", this.Id);
             this.internalMiddleware.RegisterEndPoint(this.Id, this.MessageReceived);
             if (this.settings.OtherNodes().Count == 0)
             {
@@ -257,6 +242,22 @@ namespace RAFTiNG
         }
 
         #region Methodes used by the state object
+
+        internal void SendVote(string candidate, bool voteGranted)
+        {
+            if (voteGranted)
+            {
+                this.State.VotedFor = candidate;
+                this.LeaderId = string.Empty;
+
+                if (candidate == this.Id)
+                {
+                    return;
+                }
+            }
+
+            this.SendMessage(candidate, new GrantVote(voteGranted, this.Id, this.State.CurrentTerm));
+        }
 
         /// <summary>
         /// Changes the current status.
@@ -352,12 +353,7 @@ namespace RAFTiNG
         private void SequencedSwitch(NodeStatus status)
         {
             State<T> newState;
-
-            if (this.logger.IsDebugEnabled)
-            {
-                this.logger.DebugFormat("Switching status from {0} to {1}", this.Status, status);
-            }
-
+            this.logger.DebugFormat("Switching status from {0} to {1}", this.Status, status);
             if (this.currentState != null)
             {
                 this.currentState.ExitState();
@@ -399,11 +395,7 @@ namespace RAFTiNG
         {
             if (this.currentState == null)
             {
-                if (this.logger.IsDebugEnabled)
-                {
-                    this.Logger.DebugFormat("Node is not active, discarding message ({0}).", obj);
-                }
-
+                this.Logger.DebugFormat("Node is not active, discarding message ({0}).", obj);
                 return;
             }
 

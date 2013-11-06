@@ -46,23 +46,16 @@ namespace RAFTiNG.States
             {
                 // requesting a vote for a node that has less recent information
                 // we decline
-                if (this.Logger.IsTraceEnabled())
-                {
-                    this.Logger.TraceFormat("Vote request from node with lower term. Declined {0}.", request);
-                }
-
+                this.Logger.TraceFormat("Vote request from node with lower term. Declined {0}.", request);
                 vote = false;
             }
             else
             {
                 if (request.Term > currentTerm)
                 {
-                    if (this.Logger.IsDebugEnabled)
-                    {
-                        this.Logger.DebugFormat(
+                    this.Logger.DebugFormat(
                             "Vote request from node with higher term. Updating our term. {0}",
                             request);
-                    }
 
                     // we need to upgrade our term
                     this.Node.State.CurrentTerm = request.Term;
@@ -73,23 +66,16 @@ namespace RAFTiNG.States
                 {
                     // our log is better than the candidate's
                     vote = false;
-                    if (this.Logger.IsTraceEnabled())
-                    {
-                        this.Logger.TraceFormat(
+                    this.Logger.TraceFormat(
                             "Vote request from node with less information. We do not vote. Message: {0}.",
                             request);
-                    }
                 }
                 else if (string.IsNullOrEmpty(this.Node.State.VotedFor)
                     || this.Node.State.VotedFor == request.CandidateId)
                 {
                     // grant vote
-                    if (this.Logger.IsTraceEnabled())
-                    {
-                        this.Logger.TraceFormat(
+                    this.Logger.TraceFormat(
                             "We do vote for node {1}. Message: {0}.", request, request.CandidateId);
-                    }
-
                     vote = true;
                     this.Node.State.VotedFor = request.CandidateId;
                     
@@ -100,25 +86,19 @@ namespace RAFTiNG.States
                 {
                     // we already voted for someone
                     vote = false;
-                    if (this.Logger.IsTraceEnabled())
-                    {
-                        this.Logger.TraceFormat(
+                    this.Logger.TraceFormat(
                             "We already voted. We do not grant vote. Message: {0}.", request);
-                    }
                 }
             }
             
             // send back the response
-            this.Node.SendMessage(request.CandidateId, new GrantVote(vote, this.Node.Id, currentTerm));
+            this.Node.SendVote(request.CandidateId, vote);
         }
 
         internal override void ProcessVote(GrantVote vote)
         {
-            if (this.Logger.IsDebugEnabled)
-            {
-                this.Logger.DebugFormat(
+            this.Logger.DebugFormat(
                     "Received a vote but I am a follower. Message discarded: {0}.", vote);
-            }
         }
 
         internal override void ProcessAppendEntries(AppendEntries<T> appendEntries)
@@ -165,7 +145,7 @@ namespace RAFTiNG.States
             this.ResetTimeout(.2);
         }
 
-        protected override void HeartbeatTimeouted(object state)
+        protected override void HeartbeatTimeouted()
         {
             if (this.Done)
             {

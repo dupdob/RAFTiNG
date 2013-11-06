@@ -31,7 +31,7 @@ namespace RAFTiNG.States
 
         protected readonly Node<T> Node;
 
-        private static Random seed = new Random();
+        private static readonly Random Seed = new Random();
 
         #endregion
 
@@ -65,6 +65,14 @@ namespace RAFTiNG.States
             get
             {
                 return this.Node.State.CurrentTerm;
+            }
+        }
+
+        private NodeSettings Settings
+        {
+            get
+            {
+                return this.Node.Settings;
             }
         }
 
@@ -112,25 +120,22 @@ namespace RAFTiNG.States
             }
 
             int timeout;
-            if (this.Node.TimeOutInMs != Timeout.Infinite)
+            if (this.Settings.TimeoutInMs != Timeout.Infinite)
             {
                 timeout =
                     (int)
-                    (((seed.NextDouble() * randomPart * 2.0) + (fixPart - randomPart))
-                     * this.Node.TimeOutInMs);
+                    (((Seed.NextDouble() * randomPart * 2.0) + (fixPart - randomPart))
+                     * this.Settings.TimeoutInMs);
                 if (timeout <= 1)
                 {
                     timeout = 1;
                 }
 
-                if (this.Logger.IsDebugEnabled)
-                {
-                    this.Logger.DebugFormat("Set timeout to {0} ms.", timeout);
-                }
+                this.Logger.DebugFormat("Set timeout to {0} ms.", timeout);
             }
             else
             {
-                timeout = this.Node.TimeOutInMs;
+                timeout = this.Settings.TimeoutInMs;
                 if (this.Logger.IsDebugEnabled)
                 {
                     this.Logger.Debug("Set timeout to infinite.");
@@ -141,11 +146,11 @@ namespace RAFTiNG.States
                 this.InternalTimerHandler, null, timeout, Timeout.Infinite);
         }
 
-        protected abstract void HeartbeatTimeouted(object state);
+        protected abstract void HeartbeatTimeouted();
 
         private void InternalTimerHandler(object state)
         {
-            this.Node.Sequence(() => this.HeartbeatTimeouted(state));
+            this.Node.Sequence(this.HeartbeatTimeouted);
         }
 
         #endregion

@@ -54,14 +54,11 @@ namespace RAFTiNG.States
         {
             if (request.Term > this.CurrentTerm)
             {
-                if (this.Logger.IsDebugEnabled)
-                {
-                    this.Logger.DebugFormat(
-                        "Received a vote request from a node with a higher term ({0}'s term is {1}, our {2}). Stepping down and process vote.",
-                        request.CandidateId,
-                        request.Term,
-                        this.Node.State.CurrentTerm);
-                }
+                this.Logger.DebugFormat(
+                    "Received a vote request from a node with a higher term ({0}'s term is {1}, our {2}). Stepping down and process vote.",
+                    request.CandidateId,
+                    request.Term,
+                    this.Node.State.CurrentTerm);
 
                 // we step down
                 this.Node.SwitchToAndProcessMessage(NodeStatus.Follower, request);
@@ -70,27 +67,19 @@ namespace RAFTiNG.States
 
             // requesting a vote for a node that has less recent information
             // we decline
-            if (this.Logger.IsTraceEnabled())
-            {
-                this.Logger.TraceFormat(
-                    "Received a vote request from a node with a lower term, we refuse (Msg : {0})",
-                    request);
-            }
-
-            var response = new GrantVote(false, this.Node.Id, this.CurrentTerm);
-
+            this.Logger.TraceFormat(
+                "Received a vote request from a node with a lower term, we refuse (Msg : {0})",
+                request);
+            
             // send back the response
-            this.Node.SendMessage(request.CandidateId, response);
+            this.Node.SendVote(request.CandidateId, false);
         }
 
         // process vote
         internal override void ProcessVote(GrantVote vote)
         {
-            if (this.Logger.IsTraceEnabled())
-            {
-                this.Logger.TraceFormat(
-                    "Received a vote but we are no longer interested: {0}", vote);
-            }
+            this.Logger.TraceFormat(
+                "Received a vote but we are no longer interested: {0}", vote);
         }
 
         // process appendentries
@@ -98,22 +87,15 @@ namespace RAFTiNG.States
         {
             if (appendEntries.LeaderTerm >= this.CurrentTerm)
             {
-                if (this.Logger.IsInfoEnabled)
-                {
-                    this.Logger.InfoFormat(
-                        "Received AppendEntries from a probable leader, stepping down.");
-                }
+                this.Logger.InfoFormat(
+                    "Received AppendEntries from a probable leader, stepping down.");
 
                 this.Node.SwitchToAndProcessMessage(NodeStatus.Follower, appendEntries);
                 return;
             }
 
-            if (this.Logger.IsDebugEnabled)
-            {
-                this.Logger.DebugFormat(
-                    "Received AppendEntries from an invalid leader, refusing ({0}).", appendEntries);
-            }
-
+            this.Logger.DebugFormat(
+                "Received AppendEntries from an invalid leader, refusing ({0}).", appendEntries);
             var reply = new AppendEntriesAck(this.Node.Id, this.CurrentTerm, false);
             this.Node.SendMessage(appendEntries.LeaderId, reply);
         }
@@ -123,18 +105,11 @@ namespace RAFTiNG.States
         // update commit index
         internal override void ProcessAppendEntriesAck(AppendEntriesAck appendEntriesAck)
         {
-            if (this.Logger.IsTraceEnabled())
-            {
-                this.Logger.TraceFormat("Received AppendEntriesAck ({0}).", appendEntriesAck);
-            }
+            this.Logger.TraceFormat("Received AppendEntriesAck ({0}).", appendEntriesAck);
 
             if (appendEntriesAck.Term > this.CurrentTerm)
             {
-                if (this.Logger.IsDebugEnabled)
-                {
-                    this.Logger.DebugFormat("Term is higher, I resign.");
-                }
-
+                this.Logger.DebugFormat("Term is higher, I resign.");
                 this.Node.SwitchTo(NodeStatus.Follower);
                 return;
             }
@@ -158,7 +133,7 @@ namespace RAFTiNG.States
             this.Node.SendMessage(followerId, message);
         }
 
-        protected override void HeartbeatTimeouted(object state)
+        protected override void HeartbeatTimeouted()
         {
             // send keep alive
             this.BroadcastHeartbeat();
@@ -290,11 +265,8 @@ namespace RAFTiNG.States
                 message.PrevLogTerm = this.minSynchronizedIndex < 0 ? -1 : log[this.minSynchronizedIndex].Term;
                 message.Entries = new LogEntry<T>[entriesToSend];
                 var offset = this.minSynchronizedIndex + 1;
-                if (this.logger.IsTraceEnabled())
-                {
-                    this.logger.TraceFormat(
-                        "Replicating {0} entries starting at {1}.", entriesToSend, offset);
-                }
+                this.logger.TraceFormat(
+                    "Replicating {0} entries starting at {1}.", entriesToSend, offset);
 
                 for (var i = 0; i < entriesToSend; i++)
                 {

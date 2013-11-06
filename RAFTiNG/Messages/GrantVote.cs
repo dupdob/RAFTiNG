@@ -17,8 +17,10 @@ namespace RAFTiNG.Messages
     /// <summary>
     /// Describes the result of a RequestVote Message.
     /// </summary>
-    public class GrantVote
+    public sealed class GrantVote
     {
+        #region constructor
+
         /// <summary>
         /// Initializes a new instance of the <see cref="GrantVote"/> class.
         /// </summary>
@@ -31,6 +33,11 @@ namespace RAFTiNG.Messages
             this.VoterId = voterId;
             this.VoterTerm = voterTerm;
         }
+
+
+        #endregion
+
+        #region propertie
 
         /// <summary>
         /// Gets a value indicating whether the vote was granted].
@@ -57,6 +64,11 @@ namespace RAFTiNG.Messages
         /// </value>
         public long VoterTerm { get; private set; }
 
+
+        #endregion
+
+        #region object override
+
         /// <summary>
         /// Returns a <see cref="System.String" /> that represents this instance.
         /// </summary>
@@ -71,5 +83,7 @@ namespace RAFTiNG.Messages
                 this.VoterId,
                 this.VoterTerm);
         }
+
+        #endregion
     }
 }
