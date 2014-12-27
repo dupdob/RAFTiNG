@@ -49,6 +49,7 @@ namespace RAFTiNG.States
         internal override void EnterState()
         {
             // increase term
+            this.voteReceived.Clear();
             var nextTerm = this.Node.IncrementTerm();
 
             // vote for self!
@@ -142,7 +143,7 @@ namespace RAFTiNG.States
             {
                 this.Logger.DebugFormat("We got all votes back, but I am not elected.");
             }
-            
+
             // no election, no leader, start a new election
             this.EnterState();
         }

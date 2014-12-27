@@ -22,6 +22,8 @@ namespace RAFTiNG.States
 
     using RAFTiNG.Messages;
 
+    using log4net.Core;
+
     internal class Leader<T> : State<T>
     {
         private readonly Dictionary<string, LogReplicationAgent> states = new Dictionary<string, LogReplicationAgent>();
@@ -198,7 +200,7 @@ namespace RAFTiNG.States
             /// </param>
             /// <param name="master">Master logger to capture name.
             /// </param>
-            public LogReplicationAgent(TimeSpan maxDelay, int logSize, string nodeId, ILog master)
+            public LogReplicationAgent(TimeSpan maxDelay, int logSize, string nodeId, ILoggerWrapper master)
             {
                 this.maxDelay = maxDelay;
                 this.minSynchronizedIndex = logSize - 1;
@@ -261,9 +263,15 @@ namespace RAFTiNG.States
                 }
 
                 this.flyingTransaction = true;
-                var message = new AppendEntries<T> { PrevLogIndex = this.minSynchronizedIndex };
-                message.PrevLogTerm = this.minSynchronizedIndex < 0 ? -1 : log[this.minSynchronizedIndex].Term;
-                message.Entries = new LogEntry<T>[entriesToSend];
+                var message = new AppendEntries<T>
+                                  {
+                                      PrevLogIndex = this.minSynchronizedIndex,
+                                      PrevLogTerm =
+                                          this.minSynchronizedIndex < 0
+                                              ? -1
+                                              : log[this.minSynchronizedIndex].Term,
+                                      Entries = new LogEntry<T>[entriesToSend]
+                                  };
                 var offset = this.minSynchronizedIndex + 1;
                 this.logger.TraceFormat(
                     "Replicating {0} entries starting at {1}.", entriesToSend, offset);
@@ -292,7 +300,7 @@ namespace RAFTiNG.States
                     return;
                 }
 
-                // it fails, log is not synchronised
+                // it fails, log is not synchronised, so we will try on step earlier
                 this.minSynchronizedIndex--;
             }
         }
