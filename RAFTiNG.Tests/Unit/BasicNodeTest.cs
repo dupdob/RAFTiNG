@@ -20,6 +20,8 @@ namespace RAFTiNG.Tests.Unit
     using System.Diagnostics.CodeAnalysis;
     using System.Threading;
 
+    using Michonne.Implementation;
+
     using NFluent;
 
     using NUnit.Framework;
@@ -46,7 +48,7 @@ namespace RAFTiNG.Tests.Unit
         public void DefaultNodeStateIsOk()
         {
             var settings = Helpers.BuildNodeSettings("1", new[] { "2", "3", "4" });
-            using (var node = new Node<string>(settings, new Middleware(), new StateMachine()))
+            using (var node = new Node<string>(TestHelpers.GetPool().BuildSequencer(), settings, new Middleware(), new StateMachine()))
             {
                 Check.ThatEnum(node.Status).IsEqualTo(NodeStatus.Initializing);
 
@@ -64,7 +66,7 @@ namespace RAFTiNG.Tests.Unit
             var settings = Helpers.BuildNodeSettings("1", new[] { "1", "2", "3", "4", "5" });
             settings.TimeoutInMs = 10;
 
-            using (var node = new Node<string>(settings, new Middleware(), new StateMachine()))
+            using (var node = new Node<string>(TestHelpers.GetPool().BuildSequencer(), settings, new Middleware(), new StateMachine()))
             {
                 node.Initialize();
 
@@ -80,7 +82,7 @@ namespace RAFTiNG.Tests.Unit
                 var settings = Helpers.BuildNodeSettings("1", new[] { "1", "2", "3", "4", "5" });
                 settings.TimeoutInMs = 20;
                 var middleware = new Middleware();
-                var node = new Node<string>(settings, middleware, new StateMachine());
+                var node = new Node<string>(TestHelpers.GetPool().BuildSequencer(), settings, middleware, new StateMachine());
 
                 using (node)
                 {
@@ -114,7 +116,7 @@ namespace RAFTiNG.Tests.Unit
             var settings = Helpers.BuildNodeSettings("1", new[] { "1", "2", "3", "4", "5" });
             settings.TimeoutInMs = 10;
 
-            using (var node = new Node<string>(settings, new Middleware(), new StateMachine()))
+            using (var node = new Node<string>(TestHelpers.GetPool().BuildSequencer(), settings, new Middleware(), new StateMachine()))
             {
                 node.Initialize();
                 Thread.Sleep(30);
@@ -249,7 +251,7 @@ namespace RAFTiNG.Tests.Unit
             var middleware = new Middleware(false);
             var settings = Helpers.BuildNodeSettings("1", new[] { "1", "2", "3", "4", "5" });
             settings.TimeoutInMs = Timeout.Infinite; // no timeout
-            node = new Node<string>(settings, middleware, new StateMachine());
+            node = new Node<string>(middleware.RootUnitOfExecution.BuildSequencer(), settings, middleware, new StateMachine());
 
             node.Initialize();
 
@@ -275,7 +277,7 @@ namespace RAFTiNG.Tests.Unit
 
                 if (this.lastMessage == null)
                 {
-                    Monitor.Wait(this.synchro, 50);
+                    Monitor.Wait(this.synchro, 100);
                 }
 
                 Check.That(this.lastMessage).IsNotEqualTo(null).And.IsInstanceOf<GrantVote>();

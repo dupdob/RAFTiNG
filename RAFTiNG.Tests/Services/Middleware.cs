@@ -20,9 +20,11 @@ namespace RAFTiNG.Tests.Services
 {
     using System;
     using System.Collections.Generic;
-    using System.Threading;
 
     using log4net;
+
+    using Michonne.Implementation;
+    using Michonne.Interfaces;
 
     using RAFTiNG.Services;
 
@@ -33,13 +35,19 @@ namespace RAFTiNG.Tests.Services
     {
         private readonly Dictionary<string, Action<object>> endpoints = new Dictionary<string, Action<object>>();
 
-        private readonly Dictionary<string, Sequencer> sequencer = new Dictionary<string, Sequencer>(); 
+        private readonly Dictionary<string, ISequencer> sequencer = new Dictionary<string, ISequencer>(); 
 
         private readonly ILog logger = LogManager.GetLogger("MockMiddleware");
 
-        private readonly bool asyncMode;
+        private readonly IUnitOfExecution root;
 
-        private readonly MessageRuner runner;
+        public IUnitOfExecution RootUnitOfExecution
+        {
+            get
+            {
+                return this.root;
+            }
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Middleware"/> class.
@@ -47,18 +55,15 @@ namespace RAFTiNG.Tests.Services
         /// <param name="asyncMode">if set to <c>true</c> middleware is async mode.</param>
         public Middleware(bool asyncMode = true)
         {
-            this.asyncMode = asyncMode;
-            if (this.asyncMode)
+            if (asyncMode)
             {
-                this.runner = this.Async;
+                this.root = TestHelpers.GetPool();
             }
             else
             {
-                this.runner = this.Sync;
+                this.root = TestHelpers.GetSynchronousUnitOfExecution();
             }
         }
-
-        private delegate void MessageRuner(WaitCallback action);
 
         /// <summary>
         /// Sends a message to a specific address.
@@ -69,26 +74,21 @@ namespace RAFTiNG.Tests.Services
         /// <remarks>This is a best effort delivery contract. There is no guaranteed delivery.</remarks>
         public bool SendMessage(string addressDest, object message)
         {
-            if (this.endpoints.ContainsKey(addressDest))
+            if (!this.endpoints.ContainsKey(addressDest))
             {
-                    this.runner(
-                        _ =>
-                            {
-                                try
-                                {
-                                    this.sequencer[addressDest].Sequence(
-                                        () => this.endpoints[addressDest].Invoke(message));
-                                }
-                                catch (Exception e)
-                                {
-                                    // exceptions must not cross middleware boundaries
-                                    this.logger.Error("Exception raised when processing message.", e);
-                                }
-                            });
-                return true;
+                return false;
             }
-
-            return false;
+            try
+            {
+                this.sequencer[addressDest].Dispatch(
+                    () => this.endpoints[addressDest].Invoke(message));
+            }
+            catch (Exception e)
+            {
+                // exceptions must not cross middleware boundaries
+                this.logger.Error("Exception raised when processing message.", e);
+            }
+            return true;
         }
 
         /// <summary>
@@ -116,17 +116,7 @@ namespace RAFTiNG.Tests.Services
             }
 
             this.endpoints[address] = messageReceived;
-            this.sequencer[address] = new Sequencer();
-        }
-
-        private void Async(WaitCallback action)
-        {
-            ThreadPool.QueueUserWorkItem(action);
-        }
-
-        private void Sync(WaitCallback action)
-        {
-            action(null);
+            this.sequencer[address] = this.root.BuildSequencer();
         }
     }
 }

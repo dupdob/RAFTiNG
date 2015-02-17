@@ -70,7 +70,7 @@ namespace RAFTiNG.Tests
             var h = (log4net.Repository.Hierarchy.Hierarchy)LogManager.GetRepository();
             var rootLogger = h.Root;
             rootLogger.Level = h.LevelMap["TRACE"];
-            BasicConfigurator.Configure(asyncAppender);
+            BasicConfigurator.Configure(appender);
             return new LogWrapper();
         }
 

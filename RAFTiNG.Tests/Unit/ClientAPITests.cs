@@ -17,6 +17,8 @@ namespace RAFTiNG.Tests.Unit
 {
     using System.Threading;
 
+    using Michonne.Implementation;
+
     using NFluent;
 
     using NUnit.Framework;
@@ -33,7 +35,7 @@ namespace RAFTiNG.Tests.Unit
             var settings = Helpers.BuildNodeSettings("1", new[] { "1" });
             settings.TimeoutInMs = 5;
             var raftMiddleware = new Middleware();
-            var node = new Node<string>(settings, raftMiddleware, new StateMachine());
+            var node = new Node<string>(TestHelpers.GetPool().BuildSequencer(), settings, raftMiddleware, new StateMachine());
             node.Initialize();
             Thread.Sleep(50);
 

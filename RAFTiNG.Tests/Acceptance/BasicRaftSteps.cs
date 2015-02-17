@@ -25,6 +25,8 @@ namespace RAFTiNG.Tests
     using System.Linq;
     using System.Threading;
 
+    using Michonne.Implementation;
+
     using NFluent;
 
     using RAFTiNG.Tests.Services;
@@ -39,7 +41,7 @@ namespace RAFTiNG.Tests
 
         internal StateMachine Machine { get; set; }
 
-        private IDisposable logHandle;
+        private readonly IDisposable logHandle;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RaftingInfra"/> class.
@@ -69,7 +71,7 @@ namespace RAFTiNG.Tests
     public class BasicRaftSteps
     {
 
-        private RaftingInfra infra;
+        private readonly RaftingInfra infra;
 
         private static int run;
         
@@ -89,14 +91,12 @@ namespace RAFTiNG.Tests
 
             this.infra.Middleware = new Middleware();
             this.infra.Nodes = new List<Node<string>>(p0);
-            var settings = new NodeSettings();
-            settings.Nodes = names.ToArray();
-            settings.TimeoutInMs = 100;
+            var settings = new NodeSettings { Nodes = names.ToArray(), TimeoutInMs = 100 };
 
             for (var i = 0; i < p0; i++)
             {
                 settings.NodeId = names[i];
-                var node = new Node<string>(settings, this.infra.Middleware, this.infra.Machine);
+                var node = new Node<string>(this.infra.Middleware.RootUnitOfExecution.BuildSequencer(), settings, this.infra.Middleware, this.infra.Machine);
                 this.infra.Nodes.Add(node);
             }
             run++;

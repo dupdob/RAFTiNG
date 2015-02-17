@@ -21,6 +21,8 @@ namespace RAFTiNG.Tests
     using System;
     using System.Threading;
 
+    using Michonne.Implementation;
+
     using NFluent;
 
     using RAFTiNG.Tests.Services;
@@ -42,7 +44,7 @@ namespace RAFTiNG.Tests
             this.testedNodes = new Node<string>[p0];
             for (var i = 0; i < p0; i++)
             {
-                var testedNode = new Node<string>(Helpers.BuildNodeSettings(nodeIds[i], nodeIds), middleware, new StateMachine());
+                var testedNode = new Node<string>(TestHelpers.GetPool().BuildSequencer(), Helpers.BuildNodeSettings(nodeIds[i], nodeIds), middleware, new StateMachine());
                 this.testedNodes[i] = testedNode;
                 testedNode.Initialize();
             }

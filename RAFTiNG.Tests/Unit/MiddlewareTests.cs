@@ -40,28 +40,27 @@ namespace RAFTiNG.Tests.Unit
         }
 
         [Test]
-        [ExpectedException(typeof(InvalidOperationException))]
-        public void CheckThatDoubleRegister()
+        public void CheckThatDoubleRegisterFails()
         {
             var test = new Middleware();
             test.RegisterEndPoint("test", this.MessageReceived);
-            test.RegisterEndPoint("test", this.MessageReceived);
+            Check.ThatCode(() => test.RegisterEndPoint("test", this.MessageReceived))
+                .Throws<InvalidOperationException>();
+            ;
         }
 
         [Test]
-        [ExpectedException(typeof(ArgumentNullException))]
         public void CheckThatRegisterEndPointFailsForNullOrEmptyAddress()
         {
             var test = new Middleware();
-            test.RegisterEndPoint(string.Empty, this.MessageReceived);
+            Check.ThatCode(() => test.RegisterEndPoint(string.Empty, this.MessageReceived)).Throws<ArgumentNullException>();
         }
 
         [Test]
-        [ExpectedException(typeof(ArgumentNullException))]
         public void CheckThatRegisterEndPointFailsForNullHandler()
         {
             var test = new Middleware();
-            test.RegisterEndPoint("test", null);
+            Check.ThatCode( () => test.RegisterEndPoint("test", null)) .Throws<ArgumentNullException>();
         }
 
         [Test]

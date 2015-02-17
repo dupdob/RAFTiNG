@@ -19,6 +19,8 @@ namespace RAFTiNG.Tests.Unit
     using System.Diagnostics;
     using System.Threading;
 
+    using Michonne.Implementation;
+
     using NFluent;
 
     using NUnit.Framework;
@@ -42,7 +44,7 @@ namespace RAFTiNG.Tests.Unit
                 var settings = Helpers.BuildNodeSettings("1", new[] { "1", "2" });
                 settings.TimeoutInMs = 10;
 
-                using (var leader = new Node<string>(settings, middleware, new StateMachine()))
+                using (var leader = new Node<string>(TestHelpers.GetPool().BuildSequencer(), settings, middleware, new StateMachine()))
                 {
                     // we inject
                     leader.State.AppendEntries(
@@ -69,7 +71,7 @@ namespace RAFTiNG.Tests.Unit
                 var settings = Helpers.BuildNodeSettings("1", new[] { "1", "2" });
                 settings.TimeoutInMs = 1;
 
-                using (var leader = new Node<string>(settings, middleware, new StateMachine()))
+                using (var leader = new Node<string>(TestHelpers.GetPool().BuildSequencer(), settings, middleware, new StateMachine()))
                 {
                     // we inject
                     leader.State.AppendEntries(-1, new[] { new LogEntry<string>("one"), new LogEntry<string>("two"), new LogEntry<string>("3") });

@@ -22,6 +22,8 @@ namespace RAFTiNG
 
     using log4net;
 
+    using Michonne.Interfaces;
+
     using RAFTiNG.Commands;
     using RAFTiNG.Messages;
     using RAFTiNG.Services;
@@ -37,7 +39,7 @@ namespace RAFTiNG
     {
         #region fields
 
-        private readonly Sequencer sequencer = new Sequencer();
+        private readonly ISequencer sequencer;
         
         private readonly ILog logger;
 
@@ -58,19 +60,20 @@ namespace RAFTiNG
         /// <summary>
         /// Initializes a new instance of the <see cref="Node{T}"/> class.
         /// </summary>
+        /// <param name="sequencer"><see cref="ISequencer"/>to use for execution.</param>
         /// <param name="settings">
         /// The node settings.
         /// </param>
         /// <param name="middleware">Middleware used to exchange message.
         /// </param>
         /// <param name="machine">Hosted state machine.</param>
-        public Node(NodeSettings settings, IMiddleware middleware, IStateMachine<T> machine)
+        public Node(ISequencer sequencer, NodeSettings settings, IMiddleware middleware, IStateMachine<T> machine)
         {
             this.Id = settings.NodeId;
             this.settings = settings;
             this.internalMiddleware = middleware;
             this.stateMachine = machine;
-
+            this.sequencer = sequencer;
             this.Status = NodeStatus.Initializing;
             this.State = new PersistedState<T>();
             this.logger = LogManager.GetLogger(string.Format("Node[{0}]", this.Id));
@@ -186,7 +189,7 @@ namespace RAFTiNG
         /// <param name="command">The command.</param>
         public void AddEntry(T command)
         {
-            this.sequencer.Sequence(() => this.State.AddEntry(command));
+            this.sequencer.Dispatch(() => this.State.AddEntry(command));
         }
 
         /// <summary>
@@ -343,7 +346,7 @@ namespace RAFTiNG
         /// <remarks>Use this function to prevent race conditions, so it should be the entry point for all messages, timers and other asynchronous calls.</remarks>
         internal void Sequence(Action action)
         {
-            this.sequencer.Sequence(action);
+            this.sequencer.Dispatch(action);
         }
 
         /// <summary>
@@ -384,7 +387,7 @@ namespace RAFTiNG
         // raft message received
         private void MessageReceived(object obj)
         {
-            this.sequencer.Sequence(() => this.SequencedMessageReceived(obj));
+            this.sequencer.Dispatch(() => this.SequencedMessageReceived(obj));
         }
 
         /// <summary>

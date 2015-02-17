@@ -15,6 +15,8 @@
 
 namespace RAFTiNG.Tests.Unit
 {
+    using Michonne.Implementation;
+
     using NUnit.Framework;
 
     using RAFTiNG.Tests.Services;
@@ -31,8 +33,8 @@ namespace RAFTiNG.Tests.Unit
             var settings = Helpers.BuildNodeSettings("1", new[] { "1" });
             settings.TimeoutInMs = 10;
             
-            // create a cluster of node, so there is no ambiguity about who is the leader
-            var leader = new Node<string>(settings, middleware, new StateMachine());
+            // create a cluster of one node, so there is no ambiguity about who is the leader
+            var leader = new Node<string>(TestHelpers.GetPool().BuildSequencer(), settings, middleware, new StateMachine());
         }
     }
 }

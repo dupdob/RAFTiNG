@@ -132,6 +132,7 @@ namespace RAFTiNG.States
 
             message.LeaderId = this.Node.Id;
             message.LeaderTerm = this.CurrentTerm;
+            message.CommitIndex = this.Node.LastCommit;
             this.Node.SendMessage(followerId, message);
         }
 
@@ -141,7 +142,7 @@ namespace RAFTiNG.States
             this.BroadcastHeartbeat();
         }
 
-        // compute the new commiindex
+        // compute the new commit index
         private void UpdateCommitIndex()
         {
             var ordered = this.states.Values.Select(state => state.MinSynchronizedIndex).OrderBy(value => value);
@@ -158,6 +159,7 @@ namespace RAFTiNG.States
                 var message = followerLogState.GetAppendEntries(this.Node.State.LogEntries);
                 if (message != null)
                 {
+                    message.CommitIndex = this.Node.LastCommit;
                     message.LeaderId = this.Node.Id;
                     message.LeaderTerm = this.CurrentTerm;
                     this.Node.SendMessage(entry.Key, message);
@@ -273,6 +275,7 @@ namespace RAFTiNG.States
                                       Entries = new LogEntry<T>[entriesToSend]
                                   };
                 var offset = this.minSynchronizedIndex + 1;
+                
                 this.logger.TraceFormat(
                     "Replicating {0} entries starting at {1}.", entriesToSend, offset);
 
