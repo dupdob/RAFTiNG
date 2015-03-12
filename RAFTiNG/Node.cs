@@ -172,15 +172,9 @@ namespace RAFTiNG
 
             this.logger.InfoFormat("Middleware registration to address {0}.", this.Id);
             this.internalMiddleware.RegisterEndPoint(this.Id, this.MessageReceived);
-            if (this.settings.OtherNodes().Count == 0)
-            {
-                // special case: if single now, we are the leader
-                this.SwitchTo(NodeStatus.Leader);
-            }
-            else
-            {
-                this.SwitchTo(NodeStatus.Follower);
-            }
+            
+            this.SwitchTo(
+                this.settings.OtherNodes().Count == 0 ? NodeStatus.Leader : NodeStatus.Follower);
         }
 
         /// <summary>

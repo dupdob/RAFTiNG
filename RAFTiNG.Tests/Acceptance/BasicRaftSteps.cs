@@ -24,6 +24,7 @@ namespace RAFTiNG.Tests
     using System.Globalization;
     using System.Linq;
     using System.Threading;
+    using System.Threading.Tasks;
 
     using Michonne.Implementation;
 
@@ -122,18 +123,21 @@ namespace RAFTiNG.Tests
         [When(@"I start all instances")]
         public void WhenIStartAllInstances()
         {
-            foreach (var node in infra.Nodes)
-            {
-                node.Initialize();
-            }
+            Parallel.ForEach(infra.Nodes, node => node.Initialize());
         }
 
         [Then(@"there is (.*) leader")]
         public void ThenThereIsLeader(int p0)
         {
             var leaders = this.infra.Nodes.Count(node => node.Status == NodeStatus.Leader);
-
-            Check.That(leaders).IsEqualTo(p0);
+            try
+            {
+                Check.That(leaders).IsEqualTo(p0);
+            }
+            finally 
+            {
+                this.infra.Dispose();
+            }
         }
 
         [When(@"I wait (.*) second")]

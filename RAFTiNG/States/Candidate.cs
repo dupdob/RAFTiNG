@@ -165,9 +165,9 @@ namespace RAFTiNG.States
             {
                 nodes.AppendFormat("{0},", key);
             }
-
+            
             // we have a majority
-            this.Logger.InfoFormat("I am your leader by {0}.", nodes);
+            this.Logger.InfoFormat("I am the LEADER (with {0} votes): {1}.", this.voteReceived.Count, nodes);
             this.Node.SwitchTo(NodeStatus.Leader);
         }
     }

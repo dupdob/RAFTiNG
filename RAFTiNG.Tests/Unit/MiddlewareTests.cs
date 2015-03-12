@@ -34,7 +34,7 @@ namespace RAFTiNG.Tests.Unit
         [Test]
         public void InitializationTests()
         {
-            var test = new Middleware();
+            var test = new Middleware(false);
 
             Check.That(() => test.RegisterEndPoint("testPoint", this.MessageReceived)).DoesNotThrow();
         }
@@ -42,7 +42,7 @@ namespace RAFTiNG.Tests.Unit
         [Test]
         public void CheckThatDoubleRegisterFails()
         {
-            var test = new Middleware();
+            var test = new Middleware(false);
             test.RegisterEndPoint("test", this.MessageReceived);
             Check.ThatCode(() => test.RegisterEndPoint("test", this.MessageReceived))
                 .Throws<InvalidOperationException>();
@@ -52,14 +52,14 @@ namespace RAFTiNG.Tests.Unit
         [Test]
         public void CheckThatRegisterEndPointFailsForNullOrEmptyAddress()
         {
-            var test = new Middleware();
+            var test = new Middleware(false);
             Check.ThatCode(() => test.RegisterEndPoint(string.Empty, this.MessageReceived)).Throws<ArgumentNullException>();
         }
 
         [Test]
         public void CheckThatRegisterEndPointFailsForNullHandler()
         {
-            var test = new Middleware();
+            var test = new Middleware(false);
             Check.ThatCode( () => test.RegisterEndPoint("test", null)) .Throws<ArgumentNullException>();
         }
 

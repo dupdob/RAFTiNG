@@ -35,11 +35,13 @@ namespace RAFTiNG.Tests.Services
     {
         private readonly Dictionary<string, Action<object>> endpoints = new Dictionary<string, Action<object>>();
 
-        private readonly Dictionary<string, ISequencer> sequencer = new Dictionary<string, ISequencer>(); 
+        private readonly Dictionary<string, ISequencer> sequencers = new Dictionary<string, ISequencer>(); 
 
         private readonly ILog logger = LogManager.GetLogger("MockMiddleware");
 
         private readonly IUnitOfExecution root;
+
+        private readonly ISequencer sequencer;
 
         public IUnitOfExecution RootUnitOfExecution
         {
@@ -63,6 +65,7 @@ namespace RAFTiNG.Tests.Services
             {
                 this.root = TestHelpers.GetSynchronousUnitOfExecution();
             }
+            this.sequencer = this.root.BuildSequencer();
         }
 
         /// <summary>
@@ -80,7 +83,7 @@ namespace RAFTiNG.Tests.Services
             }
             try
             {
-                this.sequencer[addressDest].Dispatch(
+                this.sequencers[addressDest].Dispatch(
                     () => this.endpoints[addressDest].Invoke(message));
             }
             catch (Exception e)
@@ -99,24 +102,28 @@ namespace RAFTiNG.Tests.Services
         /// <exception cref="System.InvalidOperationException">If an endpoint is registered more than once.</exception>
         public void RegisterEndPoint(string address, Action<object> messageReceived)
         {
-            if (string.IsNullOrEmpty(address))
-            {
-                throw new ArgumentNullException(address, "addressDest must contain a value.");
-            }
+            this.sequencer.Dispatch(
+                () =>
+                {
+                    if (string.IsNullOrEmpty(address))
+                    {
+                        throw new ArgumentNullException(address, "addressDest must contain a value.");
+                    }
 
-            if (messageReceived == null)
-            {
-                throw new ArgumentNullException("messageReceived");
-            }
+                    if (messageReceived == null)
+                    {
+                        throw new ArgumentNullException("messageReceived");
+                    }
 
-            if (this.endpoints.ContainsKey(address))
-            {
-                // double registration is development error.
-                throw new InvalidOperationException("Invalid registration attempt: endpoints can only be registered once.");
-            }
+                    if (this.endpoints.ContainsKey(address))
+                    {
+                        // double registration is development error.
+                        throw new InvalidOperationException("Invalid registration attempt: endpoints can only be registered once.");
+                    }
 
-            this.endpoints[address] = messageReceived;
-            this.sequencer[address] = this.root.BuildSequencer();
+                    this.endpoints[address] = messageReceived;
+                    this.sequencers[address] = this.root.BuildSequencer();
+                });
         }
     }
 }
