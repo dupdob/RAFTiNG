@@ -196,11 +196,12 @@ namespace RAFTiNG
                 this.logger.Info("Stopping Node.");
             }
 
-            if (this.currentState != null)
+            if (this.currentState == null)
             {
-                this.currentState.ExitState();
-                this.currentState = null;
+                return;
             }
+            this.currentState.ExitState();
+            this.currentState = null;
         }
 
         /// <summary>
@@ -210,7 +211,7 @@ namespace RAFTiNG
         /// <returns>true if the command was send, which means the cluster has a leader.</returns>
         public bool SendCommand(T command)
         {
-            if (string.IsNullOrEmpty(this.LeaderId))
+            if (String.IsNullOrEmpty(this.LeaderId))
             {
                 // no leader
                 return false;
@@ -219,7 +220,7 @@ namespace RAFTiNG
             this.Sequence(
                 () =>
                 {
-                    if (string.IsNullOrEmpty(this.LeaderId))
+                    if (String.IsNullOrEmpty(this.LeaderId))
                     {
                         // leader has disapeared
                         return;

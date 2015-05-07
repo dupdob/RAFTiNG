@@ -44,6 +44,7 @@ namespace RAFTiNG.Tests
         public AsyncAppender()
         {
             appenderThread = new Thread(this.AppenderLoop);
+            appenderThread.Priority = ThreadPriority.BelowNormal;
             appenderThread.Start();
         }
 

@@ -126,9 +126,9 @@ namespace RAFTiNG.States
                     (int)
                     (((Seed.NextDouble() * randomPart * 2.0) + (fixPart - randomPart))
                      * this.Settings.TimeoutInMs);
-                if (timeout <= 1)
+                if (timeout < 10)
                 {
-                    timeout = 1;
+                    timeout = 10;
                 }
 
                 this.Logger.DebugFormat("Set timeout to {0} ms.", timeout);

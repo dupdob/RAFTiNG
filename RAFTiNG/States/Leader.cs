@@ -98,7 +98,7 @@ namespace RAFTiNG.States
 
             this.Logger.DebugFormat(
                 "Received AppendEntries from an invalid leader, refusing ({0}).", appendEntries);
-            var reply = new AppendEntriesAck(this.Node.Id, this.CurrentTerm, false);
+            AppendEntriesAck reply = new AppendEntriesAck(this.Node.Id, this.CurrentTerm, false);
             this.Node.SendMessage(appendEntries.LeaderId, reply);
         }
 
@@ -116,7 +116,7 @@ namespace RAFTiNG.States
                 return;
             }
 
-            var followerId = appendEntriesAck.NodeId;
+            string followerId = appendEntriesAck.NodeId;
             var followerLogState = this.states[followerId];
             followerLogState.ProcessAppendEntriesAck(appendEntriesAck.Success);
             var message = followerLogState.GetAppendEntries(this.Node.State.LogEntries);
@@ -146,8 +146,8 @@ namespace RAFTiNG.States
         private void UpdateCommitIndex()
         {
             var ordered = this.states.Values.Select(state => state.MinSynchronizedIndex).OrderBy(value => value);
-            var index = this.Node.Settings.Nodes.Length - this.Node.Settings.Majority + 1;
-            var commitIndex = ordered.ElementAt(index);
+            int index = this.Node.Settings.Nodes.Length - this.Node.Settings.Majority + 1;
+            int commitIndex = ordered.ElementAt(index);
             this.Node.Commit(commitIndex);
         }
 
@@ -208,7 +208,7 @@ namespace RAFTiNG.States
                 this.minSynchronizedIndex = logSize - 1;
                 this.lastSentMessageTime = DateTime.MinValue;
                 this.logger = LogManager.GetLogger(
-                        string.Format("{0}(Replicator for {1})", master.Logger.Name, nodeId));
+                        String.Format("{0}(Replicator for {1})", master.Logger.Name, nodeId));
             }
 
             /// <summary>
@@ -256,7 +256,7 @@ namespace RAFTiNG.States
                     return null;
                 }
 
-                var entriesToSend = Math.Max(
+                int entriesToSend = Math.Max(
                     0, Math.Min(MaxBatch, log.Count - this.minSynchronizedIndex - 1));
 
                 if (entriesToSend == 0 && !this.DelayElapsed)
@@ -274,12 +274,12 @@ namespace RAFTiNG.States
                                               : log[this.minSynchronizedIndex].Term,
                                       Entries = new LogEntry<T>[entriesToSend]
                                   };
-                var offset = this.minSynchronizedIndex + 1;
+                int offset = this.minSynchronizedIndex + 1;
                 
                 this.logger.TraceFormat(
                     "Replicating {0} entries starting at {1}.", entriesToSend, offset);
 
-                for (var i = 0; i < entriesToSend; i++)
+                for (int i = 0; i < entriesToSend; i++)
                 {
                     message.Entries[i] = log[i + offset];
                 }

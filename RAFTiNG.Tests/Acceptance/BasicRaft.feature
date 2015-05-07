@@ -33,7 +33,7 @@ Scenario: A Lot of RAFTs still allow proper initialization
 	Then there is 1 leader
 
 Scenario: The invicible armada can haz leader
-	Given I have deployed 1000 instances
+	Given I have deployed 50 instances
 	When I start all instances
-	And I wait 20 second
+	And I wait 30 second
 	Then there is 1 leader

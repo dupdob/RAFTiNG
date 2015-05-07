@@ -89,7 +89,7 @@ namespace RAFTiNG.Tests.Unit
                     node.Initialize();
 
                     // should switch to candidate
-                    Check.That(this.WaitState(node, NodeStatus.Candidate, 30)).IsTrue();
+                    Check.That(this.WaitState(node, NodeStatus.Candidate, 40)).IsTrue();
 
                     // now we pretend there is a leader
                     var message = new AppendEntries<string>
@@ -119,7 +119,7 @@ namespace RAFTiNG.Tests.Unit
             using (var node = new Node<string>(TestHelpers.GetPool().BuildSequencer(), settings, new Middleware(), new StateMachine()))
             {
                 node.Initialize();
-                Thread.Sleep(30);
+                Thread.Sleep(40);
 
                 // should switch to candidate
                 Check.ThatEnum(node.Status).IsEqualTo(NodeStatus.Candidate);
