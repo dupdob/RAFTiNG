@@ -146,7 +146,7 @@ namespace RAFTiNG
         /// <param name="lastLogIndex">Last index of the log.</param>
         /// <returns>True if our log contains entries of a greater term or if we have more entries and the same term.</returns>
         /// <remarks>See RAFT specification.</remarks>
-        public bool LogIsBetterThan(long lastLogTerm, long lastLogIndex)
+        public bool LogIsBetterOrSameAs(long lastLogTerm, long lastLogIndex)
         {
             if (this.LogEntries.Count == 0)
             {

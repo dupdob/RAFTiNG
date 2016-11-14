@@ -62,7 +62,7 @@ namespace RAFTiNG.States
                 }
 
                 // we check how complete is the log ?
-                if (this.Node.State.LogIsBetterThan(request.LastLogTerm, request.LastLogIndex))
+                if (this.Node.State.LogIsBetterOrSameAs(request.LastLogTerm, request.LastLogIndex))
                 {
                     // our log is better than the candidate's
                     vote = false;

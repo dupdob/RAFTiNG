@@ -92,7 +92,7 @@ namespace RAFTiNG.Tests
 
             this.infra.Middleware = new Middleware();
             this.infra.Nodes = new List<Node<string>>(p0);
-            var settings = new NodeSettings { Nodes = names.ToArray(), TimeoutInMs = 100 };
+            var settings = new NodeSettings { Nodes = names.ToArray(), TimeoutInMs = 15*p0 };
 
             for (var i = 0; i < p0; i++)
             {

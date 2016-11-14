@@ -64,10 +64,10 @@ namespace RAFTiNG.Tests.Unit
         public void LogIsBetterWorks()
         {
             var test = new PersistedState<string> { CurrentTerm = 1 };
-            Check.That(test.LogIsBetterThan(0, 0)).IsFalse();
+            Check.That(test.LogIsBetterOrSameAs(0, 0)).IsFalse();
             test.AddEntry(new LogEntry<string>("dummy"));
-            Check.That(test.LogIsBetterThan(0, 0)).IsTrue();
-            Check.That(test.LogIsBetterThan(1, 0)).IsFalse();
+            Check.That(test.LogIsBetterOrSameAs(0, 0)).IsTrue();
+            Check.That(test.LogIsBetterOrSameAs(1, 0)).IsFalse();
         }
 
         [Test]

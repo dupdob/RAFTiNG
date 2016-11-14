@@ -71,14 +71,26 @@ namespace RAFTiNG.States
                 return;
             }
 
-            if ((request.Term > currentTerm)
-                || (request.Term == this.CurrentTerm
-                    && !this.Node.State.LogIsBetterThan(request.LastLogTerm, request.LastLogIndex)))
+            if (request.Term > currentTerm)
             {
                 this.Logger.DebugFormat(
                     "Received vote request from node with higher term ({0}'s term is {1}, our {2}). Resigning.",
                     request.CandidateId,
                     request.Term,
+                    currentTerm);
+
+                // we step down
+                this.Node.SwitchToAndProcessMessage(NodeStatus.Follower, request);
+                return;
+            }
+
+            if (request.Term == this.CurrentTerm
+                    && !this.Node.State.LogIsBetterOrSameAs(request.LastLogTerm, request.LastLogIndex))
+            {
+                this.Logger.DebugFormat(
+                    "Received vote request from node with better log ({0}'s log is at {1}, our at {2}). Resigning.",
+                    request.LastLogIndex,
+                    this.Node.LastCommit,
                     currentTerm);
 
                 // we step down

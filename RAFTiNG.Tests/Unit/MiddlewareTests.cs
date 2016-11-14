@@ -36,7 +36,7 @@ namespace RAFTiNG.Tests.Unit
         {
             var test = new Middleware(false);
 
-            Check.That(() => test.RegisterEndPoint("testPoint", this.MessageReceived)).DoesNotThrow();
+            Check.ThatCode(() => test.RegisterEndPoint("testPoint", this.MessageReceived)).DoesNotThrow();
         }
 
         [Test]
@@ -82,7 +82,7 @@ namespace RAFTiNG.Tests.Unit
             var test = new Middleware(false);
 
             test.RegisterEndPoint("test", x => { throw new Exception(); });
-            Check.That( ()=> test.SendMessage("test", 1)).DoesNotThrow();
+            Check.ThatCode( ()=> test.SendMessage("test", 1)).DoesNotThrow();
         }
 
         private void MessageReceived(object message)
