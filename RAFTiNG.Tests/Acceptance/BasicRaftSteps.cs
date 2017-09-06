@@ -92,7 +92,8 @@ namespace RAFTiNG.Tests
 
             this.infra.Middleware = new Middleware();
             this.infra.Nodes = new List<Node<string>>(p0);
-            var settings = new NodeSettings { Nodes = names.ToArray(), TimeoutInMs = 15*p0 };
+            int timeoutFactor = Math.Min(Math.Max(p0, 6), 100);
+            var settings = new NodeSettings { Nodes = names.ToArray(), TimeoutInMs = 15*timeoutFactor };
 
             for (var i = 0; i < p0; i++)
             {

@@ -114,10 +114,7 @@ namespace RAFTiNG.States
                 return;
             }
 
-            if (this.HeartBeatTimer != null)
-            {
-                this.HeartBeatTimer.Dispose();
-            }
+            this.HeartBeatTimer?.Dispose();
 
             int timeout;
             if (this.Settings.TimeoutInMs != Timeout.Infinite)

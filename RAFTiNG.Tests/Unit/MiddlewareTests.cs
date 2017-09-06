@@ -73,7 +73,7 @@ namespace RAFTiNG.Tests.Unit
             var newMessage = new object();
             test.SendMessage("point", newMessage);
 
-            Check.That(this.lastMessage).IsSameReferenceThan(newMessage);
+            Check.That(this.lastMessage).IsSameReferenceAs(newMessage);
         }
 
         [Test]
