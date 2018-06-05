@@ -220,3 +220,4 @@ _NCrunch*
 
 *.nupkg
 *.ide
+/.vs/RAFTiNG/v15/Server/sqlite3

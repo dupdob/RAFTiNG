@@ -205,7 +205,7 @@ namespace RAFTiNG.Tests.Unit
                     Check.That(node.State.VotedFor).IsEqualTo("2");
                 }
 
-                Check.That(answer).IsDistinctFrom(null);
+                Check.That(answer).IsNotNull();
                 // did we get the vote?
                 Check.That(answer.VoteGranted).IsTrue();
             }
